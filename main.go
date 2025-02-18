@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 
+	_ "github.com/atlanhq/atlan-go/atlan"
 	"github.com/atlanhq/atlan-go/atlan/assets"
+	_ "github.com/atlanhq/atlan-go/atlan/model/structs"
 )
 
 func main() {

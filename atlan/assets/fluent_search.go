@@ -17,6 +17,7 @@ type FluentSearch struct {
 	IncludesOnResults   []string
 	IncludesOnRelations []string
 	UtmTags             []string
+	Client              *AtlanClient
 }
 
 // SetUtmTags sets the UTM tags for tracking the source of requests.
@@ -136,9 +137,39 @@ func (fs *FluentSearch) IncludeOnRelations(fields ...string) *FluentSearch {
 	return fs
 }
 
+// WithClient sets the Client field.
+func (fs *FluentSearch) WithClient(client *AtlanClient) *FluentSearch {
+	fs.Client = client
+	return fs
+}
+
 // Execute performs the search and returns the results.
-func (fs *FluentSearch) Execute() (*IndexSearchIterator, error) {
-	return Search(*fs.ToRequest())
+func (fs *FluentSearch) Execute() ([]*model.IndexSearchResponse, error) {
+	if fs.PageSize == 0 {
+		fs.PageSize = 300 // Set Default Page Size
+	}
+
+	pageSize := fs.PageSize
+	request := fs.ToRequest()
+
+	iterator := NewIndexSearchIterator(pageSize, *request)
+	if fs.Client != nil {
+		iterator.SetClient(fs.Client)
+	}
+	responses := make([]*model.IndexSearchResponse, 0)
+
+	for iterator.HasMoreResults() {
+		{
+			response, err := iterator.NextPage()
+			if err != nil {
+				// fmt.Printf("Error executing search: %v\n", err)
+				return nil, err
+			}
+
+			responses = append(responses, response)
+		}
+	}
+	return responses, nil
 }
 
 // Sort by GUID by default only if not already specified by the developer

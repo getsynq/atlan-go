@@ -1,7 +1,6 @@
 package assets
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
@@ -11,37 +10,32 @@ import (
 )
 
 // Call the search API
-func Search(request model.IndexSearchRequest) (*IndexSearchIterator, error) {
-	// Define the API endpoint
+func Search(request model.IndexSearchRequest, client *AtlanClient) (*model.IndexSearchResponse, error) {
+	// Define the API endpoint and method
 	api := &INDEX_SEARCH
+
+	if client == nil {
+		client = DefaultAtlanClient
+	}
 
 	if request.Dsl.Size == 0 {
 		request.Dsl.Size = 300 // Switch to default page size
 	}
 
 	// Call the API
-	responseBytes, err := DefaultAtlanClient.CallAPI(api, nil, &request)
+	responseBytes, err := client.CallAPI(api, nil, &request)
 	if err != nil {
 		return nil, err
 	}
 
-	// Unmarshal response
-	var response model.IndexSearchResponse
-	err = json.Unmarshal(responseBytes, &response)
+	// Unmarshal the response
+	response := &model.IndexSearchResponse{}
+	err = response.UnmarshalJSON(responseBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	// Initialize the iterator with the first page (since we already fetch the first page)
-	return &IndexSearchIterator{
-		request:        request,
-		currentPage:    &response,
-		currentIndex:   0,
-		currentPageNum: 1,
-		pageSize:       request.Dsl.Size,
-		totalResults:   response.ApproximateCount,
-		hasMoreResults: len(response.Entities) > 0,
-	}, nil
+	return response, nil
 }
 
 // FindGlossaryByName searches for a glossary by name.
@@ -250,6 +244,7 @@ type IndexSearchIterator struct {
 	pageSize       int
 	totalResults   int64
 	hasMoreResults bool
+	client         *AtlanClient
 }
 
 // Iter returns a channel to iterate over search results.
@@ -305,6 +300,10 @@ func NewIndexSearchIterator(pageSize int, initialRequest model.IndexSearchReques
 	}
 }
 
+func (it *IndexSearchIterator) SetClient(client *AtlanClient) {
+	it.client = client
+}
+
 // NextPage returns the next page of search results.
 func (it *IndexSearchIterator) NextPage() (*model.IndexSearchResponse, error) {
 	if !it.hasMoreResults {
@@ -314,7 +313,7 @@ func (it *IndexSearchIterator) NextPage() (*model.IndexSearchResponse, error) {
 	it.request.Dsl.From = it.currentPageNum * it.pageSize
 	it.request.Dsl.Size = it.pageSize
 
-	response, err := Search(it.request)
+	response, err := Search(it.request, it.client)
 	if err != nil {
 		return nil, err
 	}
@@ -356,7 +355,7 @@ func (it *IndexSearchIterator) IteratePages() ([]*model.IndexSearchResponse, err
 	// Perform an initial search to get the approximateCount
 	it.request.Dsl.From = 0
 	it.request.Dsl.Size = it.pageSize
-	response, err := Search(it.request)
+	response, err := Search(it.request, it.client)
 	if err != nil {
 		return nil, err
 	}
@@ -384,7 +383,7 @@ func (it *IndexSearchIterator) IteratePages() ([]*model.IndexSearchResponse, err
 			defer wg.Done()
 			it.request.Dsl.From = i * it.pageSize
 			it.request.Dsl.Size = it.pageSize
-			response, err := Search(it.request)
+			response, err := Search(it.request, it.client)
 			if err != nil {
 				errors[i] = err
 				return
