@@ -561,8 +561,9 @@ type Meanings struct {
 
 type SearchAttributes struct {
 	// DataProduct attributes
-	DataProductAssetsDSL *string             `json:"dataProductAssetsDSL,omitempty"`
-	DataDomain           *structs.DataDomain `json:"dataDomain,omitempty"`
+	DataProductAssetsDSL   *string             `json:"dataProductAssetsDSL,omitempty"`
+	DataDomain             *structs.DataDomain `json:"dataDomain,omitempty"`
+	DataProductCriticality *string             `json:"daapCriticality,omitempty"`
 
 	// DataDomain attributes
 	ParentDomain *structs.DataDomain `json:"parentDomain,omitempty"`
@@ -964,6 +965,7 @@ func (sa *SearchAssets) UnmarshalJSON(data []byte) error {
 		if aux.SearchAttributes.DataDomain != nil && aux.SearchAttributes.DataDomain.UniqueAttributes != nil && aux.SearchAttributes.DataDomain.UniqueAttributes.QualifiedName != nil {
 			sa.DataProductDataDomain.QualifiedName = aux.SearchAttributes.DataDomain.UniqueAttributes.QualifiedName
 		}
+		sa.DataProductCriticality = aux.SearchAttributes.DataProductCriticality
 		// DataDomain Attributes
 		sa.ParentDomain = aux.SearchAttributes.ParentDomain
 		if aux.SearchAttributes.ParentDomain != nil && aux.SearchAttributes.ParentDomain.UniqueAttributes != nil && aux.SearchAttributes.ParentDomain.UniqueAttributes.QualifiedName != nil {
