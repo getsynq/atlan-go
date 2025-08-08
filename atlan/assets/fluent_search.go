@@ -1,6 +1,8 @@
 package assets
 
 import (
+	"iter"
+
 	"github.com/getsynq/atlan-go/atlan"
 	"github.com/getsynq/atlan-go/atlan/model"
 )
@@ -141,6 +143,36 @@ func (fs *FluentSearch) IncludeOnRelations(fields ...string) *FluentSearch {
 func (fs *FluentSearch) WithClient(client *AtlanClient) *FluentSearch {
 	fs.Client = client
 	return fs
+}
+
+// Execute performs the search and returns the results.
+func (fs *FluentSearch) ExecuteIter() iter.Seq2[*model.IndexSearchResponse, error] {
+	return func(yield func(*model.IndexSearchResponse, error) bool) {
+		if fs.PageSize == 0 {
+			fs.PageSize = 300 // Set Default Page Size
+		}
+	
+		pageSize := fs.PageSize
+		request := fs.ToRequest()
+	
+		iterator := NewIndexSearchIterator(pageSize, *request)
+		if fs.Client != nil {
+			iterator.SetClient(fs.Client)
+		}
+	
+		for iterator.HasMoreResults() {
+			{
+				response, err := iterator.NextPage()
+				if err != nil {
+					yield(nil, err)
+					return
+				}
+				if !yield(response, nil) {
+					return
+				}
+			}
+		}
+	}
 }
 
 // Execute performs the search and returns the results.
