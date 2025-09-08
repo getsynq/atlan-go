@@ -17,26 +17,28 @@ func TestIntegrationPurpose(t *testing.T) {
 		t.Skip("skipping integration test")
 	}
 
-	NewContext()
+	client := NewContext()
 	// ctx.EnableLogging("debug")
 
-	purposeID, purposeQualifiedName := testCreatePurpose(t)
-	testRetrievePurpose(t, purposeID)
-	testPurposeCreateMetadataPolicy(t, purposeID)
-	testPurposeCreateDataPolicy(t, purposeID)
-	testFindPurposesByName(t)
-	testUpdatePurpose(t, purposeQualifiedName)
-	testDeletePurpose(t, purposeID)
+	purposeID, purposeQualifiedName := testCreatePurpose(t, client)
+	testRetrievePurpose(t, client, purposeID)
+	testPurposeCreateMetadataPolicy(t, client, purposeID)
+	testPurposeCreateDataPolicy(t, client, purposeID)
+	testFindPurposesByName(t, client)
+	testUpdatePurpose(t, client, purposeQualifiedName)
+	testDeletePurpose(t, client, purposeID)
 }
 
-func testCreatePurpose(t *testing.T) (string, string) {
-	p := &Purpose{}
+func testCreatePurpose(t *testing.T, client *AtlanClient) (string, string) {
+	p := &Purpose{
+		client: client,
+	}
 	// Create Purpose
 	atlanTags := []string{"Issue", "Confidential"}
 	err := p.Creator(PurposeName, atlanTags)
 	require.NoError(t, err, "creator should not return an error")
 
-	response, err := Save(p)
+	response, err := Save(client)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -52,8 +54,8 @@ func testCreatePurpose(t *testing.T) (string, string) {
 	return CreatedPurpose.Guid, *CreatedPurpose.Attributes.QualifiedName
 }
 
-func testRetrievePurpose(t *testing.T, purposeID string) {
-	purpose, err := GetByGuid[*Purpose](purposeID)
+func testRetrievePurpose(t *testing.T, client *AtlanClient, purposeID string) {
+	purpose, err := GetByGuid[*Purpose](client, purposeID)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -61,7 +63,7 @@ func testRetrievePurpose(t *testing.T, purposeID string) {
 	assert.Equal(t, PurposeName, *purpose.Name, "purpose name should match")
 }
 
-func testFindPurposesByName(t *testing.T) {
+func testFindPurposesByName(t *testing.T, client *AtlanClient) {
 	time.Sleep(3 * time.Second)
 	purposes, err := FindPurposesByName(PurposeName)
 	if err != nil {
@@ -72,7 +74,7 @@ func testFindPurposesByName(t *testing.T) {
 	assert.Equal(t, PurposeName, *purposes.Entities[0].Name, "purpose name should match")
 }
 
-func testPurposeCreateMetadataPolicy(t *testing.T, purposeID string) {
+func testPurposeCreateMetadataPolicy(t *testing.T, client *AtlanClient, purposeID string) {
 	p := &Purpose{}
 	policy, err := p.CreateMetadataPolicy(
 		PurposeName,
@@ -86,7 +88,7 @@ func testPurposeCreateMetadataPolicy(t *testing.T, purposeID string) {
 		true,
 	)
 	require.NoError(t, err, "error should be nil while creating metadata policy")
-	response, err := Save(policy)
+	response, err := Save(client, policy)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -96,7 +98,7 @@ func testPurposeCreateMetadataPolicy(t *testing.T, purposeID string) {
 	assert.NotNil(t, CreatedPolicy, "policy should not be nil")
 }
 
-func testPurposeCreateDataPolicy(t *testing.T, purposeID string) {
+func testPurposeCreateDataPolicy(t *testing.T, client *AtlanClient, purposeID string) {
 	p := &Purpose{}
 	policy, err := p.CreateDataPolicy(
 		PurposeName,
@@ -107,7 +109,7 @@ func testPurposeCreateDataPolicy(t *testing.T, purposeID string) {
 		true,
 	)
 	require.NoError(t, err, "error should be nil while creating data policy")
-	response, err := Save(policy)
+	response, err := Save(client, policy)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -117,7 +119,7 @@ func testPurposeCreateDataPolicy(t *testing.T, purposeID string) {
 	assert.NotNil(t, CreatedPolicy, "policy should not be nil")
 }
 
-func testUpdatePurpose(t *testing.T, purposeQualifiedName string) {
+func testUpdatePurpose(t *testing.T, client *AtlanClient, purposeQualifiedName string) {
 	p := &Purpose{}
 	NewName := atlan.MakeUnique("test-update-purpose")
 	Description := atlan.MakeUnique("test-update-purpose-description")
@@ -126,7 +128,7 @@ func testUpdatePurpose(t *testing.T, purposeQualifiedName string) {
 
 	p.Name = &NewName
 	p.Description = &Description
-	UpdaterResponse, err := Save(p)
+	UpdaterResponse, err := Save(client, p)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -136,8 +138,8 @@ func testUpdatePurpose(t *testing.T, purposeQualifiedName string) {
 	assert.Equal(t, *p.Description, *UpdaterResponse.MutatedEntities.UPDATE[0].Attributes.Description, "purpose description should match")
 }
 
-func testDeletePurpose(t *testing.T, purposeID string) {
-	DeleteResponse, err := PurgeByGuid([]string{purposeID})
+func testDeletePurpose(t *testing.T, client *AtlanClient, purposeID string) {
+	DeleteResponse, err := PurgeByGuid(client, []string{purposeID})
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}

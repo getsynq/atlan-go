@@ -21,12 +21,11 @@ var (
 	cacheMutex sync.Mutex
 )
 
-// GetCache retrieves the RoleCache for the default Atlan client.
-func GetCache() (*RoleCache, error) {
+// GetRoleCache retrieves the RoleCache for the default Atlan client.
+func GetRoleCache(client *AtlanClient) (*RoleCache, error) {
 	cacheMutex.Lock()
 	defer cacheMutex.Unlock()
 
-	client := DefaultAtlanClient
 	cacheKey := generateCacheKey(client.host, client.ApiKey)
 
 	if roleCaches[cacheKey] == nil {
@@ -40,32 +39,6 @@ func GetCache() (*RoleCache, error) {
 	return roleCaches[cacheKey], nil
 }
 
-// GetRoleIDForRoleName  translates the provided role name to its GUID.
-func GetRoleIDForRoleName(name string) (string, error) {
-	cache, err := GetCache()
-	if err != nil {
-		return "", err
-	}
-	return cache.getIDForName(name), nil
-}
-
-// GetRoleNameForRoleID translates the provided role GUID to its human-readable name.
-func GetRoleNameForRoleID(id string) (string, error) {
-	cache, err := GetCache()
-	if err != nil {
-		return "", err
-	}
-	return cache.getNameForID(id), nil
-}
-
-// ValidateIDStrings validates that the given role GUIDs are valid.
-func ValidateIDStrings(ids []string) error {
-	cache, err := GetCache()
-	if err != nil {
-		return err
-	}
-	return cache.validateIDStrings(ids)
-}
 
 func (rc *RoleCache) refreshCache() error {
 	rc.mutex.Lock()
@@ -89,7 +62,8 @@ func (rc *RoleCache) refreshCache() error {
 	return nil
 }
 
-func (rc *RoleCache) getIDForName(name string) string {
+// GetRoleIDForRoleName  translates the provided role name to its GUID.
+func (rc *RoleCache) GetRoleIDForRoleName(name string) string {
 	if id, exists := rc.mapNameToID[name]; exists {
 		return id
 	}
@@ -97,7 +71,8 @@ func (rc *RoleCache) getIDForName(name string) string {
 	return rc.mapNameToID[name]
 }
 
-func (rc *RoleCache) getNameForID(id string) string {
+// GetRoleNameForRoleID translates the provided role GUID to its human-readable name.
+func (rc *RoleCache) GetRoleNameForRoleID(id string) string {
 	if name, exists := rc.mapIDToName[id]; exists {
 		return name
 	}
@@ -105,7 +80,8 @@ func (rc *RoleCache) getNameForID(id string) string {
 	return rc.mapIDToName[id]
 }
 
-func (rc *RoleCache) validateIDStrings(ids []string) error {
+// ValidateIDStrings validates that the given role GUIDs are valid.
+func (rc *RoleCache) ValidateIDStrings(ids []string) error {
 	for _, id := range ids {
 		if _, exists := rc.mapIDToName[id]; !exists {
 			rc.refreshCache()

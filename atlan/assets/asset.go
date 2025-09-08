@@ -1152,17 +1152,13 @@ func NewWorkflowRunFields() *WorkflowRunFields {
 // Methods on assets
 
 // GetbyGuid retrieves an asset by guid
-func GetByGuid[T AtlanObject](guid string) (T, error) {
+func GetByGuid[T AtlanObject](client *AtlanClient, guid string) (T, error) {
 	var asset T
-
-	if DefaultAtlanClient == nil {
-		return asset, fmt.Errorf("default AtlanClient not initialized")
-	}
 
 	api := &GET_ENTITY_BY_GUID
 	api.Path = fmt.Sprintf("entity/guid/%s", guid) // Adjust to the actual API path structure
 
-	response, err := DefaultAtlanClient.CallAPI(api, nil, nil)
+	response, err := client.CallAPI(api, nil, nil)
 	if err != nil {
 		return asset, err
 	}
@@ -1179,7 +1175,9 @@ func GetByGuid[T AtlanObject](guid string) (T, error) {
 	return newAsset, nil
 }
 
-func ModifyTags(api API,
+func ModifyTags(
+	client *AtlanClient, 
+	api API,
 	assetType reflect.Type,
 	qualifiedName string,
 	atlanTagNames []string,
@@ -1190,8 +1188,10 @@ func ModifyTags(api API,
 ) error {
 	var atlanTags []structs.AtlanTag
 
+	tagCache := NewAtlanTagCache(client)
+
 	for _, name := range atlanTagNames {
-		TagName, _ := GetAtlanTagIDForName(name)
+		TagName, _ := tagCache.GetIDForName(name)
 		atlanTags = append(atlanTags, structs.AtlanTag{
 			TypeName:                            &TagName,
 			Propagate:                           &propagate,
@@ -1207,7 +1207,7 @@ func ModifyTags(api API,
 
 	API, _ := api.FormatPathWithParams(assetType.Name(), "classifications")
 
-	_, err := DefaultAtlanClient.CallAPI(
+	_, err := client.CallAPI(
 		API,
 		queryParams,
 		atlanTags,
@@ -1220,6 +1220,7 @@ func ModifyTags(api API,
 }
 
 func AddAtlanTags[T AtlanObject](
+	client *AtlanClient, 
 	qualifiedName string,
 	atlanTagNames []string,
 	propagate bool,
@@ -1231,6 +1232,7 @@ func AddAtlanTags[T AtlanObject](
 	assetType := reflect.TypeOf(asset).Elem()
 
 	err := ModifyTags(
+		client,
 		UPDATE_ENTITY_BY_ATTRIBUTE,
 		assetType,
 		qualifiedName,
@@ -1247,6 +1249,7 @@ func AddAtlanTags[T AtlanObject](
 }
 
 func UpdateAtlanTags[T AtlanObject](
+	client *AtlanClient, 
 	qualifiedName string,
 	atlanTagNames []string,
 	propagate bool,
@@ -1258,6 +1261,7 @@ func UpdateAtlanTags[T AtlanObject](
 	assetType := reflect.TypeOf(asset).Elem()
 
 	err := ModifyTags(
+		client,
 		PARTIAL_UPDATE_ENTITY_BY_ATTRIBUTE,
 		assetType,
 		qualifiedName,
@@ -1274,6 +1278,7 @@ func UpdateAtlanTags[T AtlanObject](
 }
 
 func RemoveAtlanTag[T AtlanObject](
+	client *AtlanClient, 
 	qualifiedName string,
 	atlanTagName string,
 ) error {
@@ -1282,7 +1287,7 @@ func RemoveAtlanTag[T AtlanObject](
 	assetType := reflect.TypeOf(asset).Elem()
 
 	// Get the internal ID for the tag name
-	classificationID, err := GetAtlanTagIDForName(atlanTagName)
+	classificationID, err := NewAtlanTagCache(client).GetIDForName(atlanTagName)
 	if err != nil {
 		return fmt.Errorf("failed to get Atlan tag ID for name %s: %w", atlanTagName, err)
 	}
@@ -1301,7 +1306,7 @@ func RemoveAtlanTag[T AtlanObject](
 	API, _ := api.FormatPathWithParams(assetType.Name(), "classification", classificationID)
 
 	// Call the Atlan API to remove the tag
-	_, err = DefaultAtlanClient.CallAPI(API, queryParams, nil)
+	_, err = client.CallAPI(API, queryParams, nil)
 	if err != nil {
 		return fmt.Errorf("failed to remove Atlan tag: %w", err)
 	}
@@ -1310,12 +1315,11 @@ func RemoveAtlanTag[T AtlanObject](
 }
 
 // GetByQualifiedName retrieves an asset by guid
-func GetByQualifiedName[T AtlanObject](qualifiedName string) (T, error) {
+func GetByQualifiedName[T AtlanObject](
+	client *AtlanClient,
+	qualifiedName string,
+) (T, error) {
 	var asset T
-
-	if DefaultAtlanClient == nil {
-		return asset, fmt.Errorf("default AtlanClient not initialized")
-	}
 
 	api := &GET_ENTITY_BY_UNIQUE_ATTRIBUTE
 	api.Path += reflect.TypeOf(asset).Elem().Name()
@@ -1324,7 +1328,7 @@ func GetByQualifiedName[T AtlanObject](qualifiedName string) (T, error) {
 		"attr:qualifiedName": qualifiedName,
 	}
 
-	response, err := DefaultAtlanClient.CallAPI(api, queryParams, nil)
+	response, err := client.CallAPI(api, queryParams, nil)
 	if err != nil {
 		return asset, err
 	}
@@ -1342,11 +1346,7 @@ func GetByQualifiedName[T AtlanObject](qualifiedName string) (T, error) {
 }
 
 // RetrieveMinimal retrieves an asset by its GUID, without any of its relationships.
-func RetrieveMinimal(guid string) (*structs.Asset, error) {
-	if DefaultAtlanClient == nil {
-		return nil, fmt.Errorf("default AtlanClient not initialized")
-	}
-
+func RetrieveMinimal(client *AtlanClient, guid string) (*structs.Asset, error) {
 	api := &GET_ENTITY_BY_GUID
 	originalPath := api.Path
 
@@ -1357,7 +1357,7 @@ func RetrieveMinimal(guid string) (*structs.Asset, error) {
 	queryParams["min_ext_info"] = "true"
 	queryParams["ignore_relationships"] = "true"
 
-	response, err := DefaultAtlanClient.CallAPI(api, queryParams, nil)
+	response, err := client.CallAPI(api, queryParams, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1374,7 +1374,7 @@ func RetrieveMinimal(guid string) (*structs.Asset, error) {
 }
 
 // PurgeByGuid HARD deletes assets by their GUIDs.
-func PurgeByGuid(guids []string) (*model.AssetMutationResponse, error) {
+func PurgeByGuid(client *AtlanClient, guids []string) (*model.AssetMutationResponse, error) {
 	if len(guids) == 0 {
 		return nil, fmt.Errorf("no GUIDs provided for deletion")
 	}
@@ -1392,7 +1392,7 @@ func PurgeByGuid(guids []string) (*model.AssetMutationResponse, error) {
 	queryParams["guid"] = guidString
 
 	// Call the API
-	resp, err := DefaultAtlanClient.CallAPI(api, queryParams, nil)
+	resp, err := client.CallAPI(api, queryParams, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1408,13 +1408,13 @@ func PurgeByGuid(guids []string) (*model.AssetMutationResponse, error) {
 }
 
 // DeleteByGuid SOFT deletes assets by their GUIDs.
-func DeleteByGuid(guids []string) (*model.AssetMutationResponse, error) {
+func DeleteByGuid(client *AtlanClient, guids []string) (*model.AssetMutationResponse, error) {
 	if len(guids) == 0 {
 		return nil, fmt.Errorf("no GUIDs provided for deletion")
 	}
 
 	for _, guid := range guids {
-		asset, err := RetrieveMinimal(guid)
+		asset, err := RetrieveMinimal(client, guid)
 		if err != nil {
 			return nil, fmt.Errorf("error retrieving asset: %v", err)
 		}
@@ -1440,9 +1440,9 @@ func DeleteByGuid(guids []string) (*model.AssetMutationResponse, error) {
 	fmt.Println("Query Params:", queryParams)
 
 	// Call the API
-	resp, err := DefaultAtlanClient.CallAPI(api, queryParams, nil)
+	resp, err := client.CallAPI(api, queryParams, nil)
 	if err != nil {
-		DefaultAtlanClient.logger.Errorf("Error soft deleting assets: %v", err)
+		client.logger.Errorf("Error soft deleting assets: %v", err)
 		return nil, err
 	}
 
@@ -1455,7 +1455,7 @@ func DeleteByGuid(guids []string) (*model.AssetMutationResponse, error) {
 
 	// Wait until each asset is deleted
 	for _, guid := range guids {
-		err = WaitTillDeleted(guid)
+		err = WaitTillDeleted(client, guid)
 		if err != nil {
 			return nil, err
 		}
@@ -1465,9 +1465,9 @@ func DeleteByGuid(guids []string) (*model.AssetMutationResponse, error) {
 }
 
 // WaitTillDeleted waits for an asset to be deleted.
-func WaitTillDeleted(guid string) error {
+func WaitTillDeleted(client *AtlanClient, guid string) error {
 	for i := 0; i < MaxRetries; i++ {
-		asset, err := RetrieveMinimal(guid)
+		asset, err := RetrieveMinimal(client, guid)
 		if err != nil {
 			return fmt.Errorf("error retrieving asset: %v", err)
 		}
@@ -1489,13 +1489,13 @@ type SaveRequest struct {
 }
 
 // Save saves the assets in memory to the Atlas server.
-func Save(assets ...AtlanObject) (*model.AssetMutationResponse, error) {
+func Save(client *AtlanClient, assets ...AtlanObject) (*model.AssetMutationResponse, error) {
 	request := SaveRequest{
 		Entities: assets,
 	}
 
 	api := &CREATE_ENTITIES
-	resp, err := DefaultAtlanClient.CallAPI(api, nil, request)
+	resp, err := client.CallAPI(api, nil, request)
 	if err != nil {
 		return nil, err
 	}

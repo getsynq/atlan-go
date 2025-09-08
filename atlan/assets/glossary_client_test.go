@@ -15,21 +15,21 @@ func TestIntegrationGlossary(t *testing.T) {
 		t.Skip("skipping integration test")
 	}
 
-	NewContext()
+	client := NewContext()
 
-	glossaryGUID, glossaryQualifiedName := testCreateGlossary(t)
+	glossaryGUID, glossaryQualifiedName := testCreateGlossary(t, client)
 	fmt.Printf("glossaryQn: %v\n", glossaryQualifiedName)
-	testUpdateGlossary(t, glossaryGUID)
-	testRetrieveGlossary(t, glossaryGUID)
-	testRetrieveGlossarybyQualifiedName(t, glossaryQualifiedName)
-	testDeleteGlossary(t, glossaryGUID)
+	testUpdateGlossary(t, client, glossaryGUID)
+	testRetrieveGlossary(t, client, glossaryGUID)
+	testRetrieveGlossarybyQualifiedName(t, client, glossaryQualifiedName)
+	testDeleteGlossary(t, client, glossaryGUID)
 }
 
-func testCreateGlossary(t *testing.T) (string, string) {
+func testCreateGlossary(t *testing.T, client *AtlanClient) (string, string) {
 	g := &AtlasGlossary{}
 	// Create Glossary
 	g.Creator(GlossaryName, atlan.AtlanIconAirplaneInFlight)
-	response, err := Save(g)
+	response, err := Save(client, g)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -45,13 +45,13 @@ func testCreateGlossary(t *testing.T) (string, string) {
 	return assetone.Guid, *assetone.Attributes.QualifiedName
 }
 
-func testUpdateGlossary(t *testing.T, glossaryGUID string) {
+func testUpdateGlossary(t *testing.T, client *AtlanClient, glossaryGUID string) {
 	g := &AtlasGlossary{}
 	glossaryQualifiedName := GlossaryName + "-qual"
 	DisplayName := "gsdk-test-update"
 	g.Updater(GlossaryName, glossaryQualifiedName, glossaryGUID)
 	g.DisplayName = &DisplayName
-	updateresponse, err := Save(g)
+	updateresponse, err := Save(client, g)
 	if err != nil {
 		fmt.Println("Error:", err)
 	}
@@ -60,8 +60,8 @@ func testUpdateGlossary(t *testing.T, glossaryGUID string) {
 	assert.Equal(t, *g.DisplayName, *updateresponse.MutatedEntities.UPDATE[0].Attributes.DisplayText, "glossary display name should match")
 }
 
-func testRetrieveGlossary(t *testing.T, glossaryGUID string) {
-	glossary, err := GetByGuid[*AtlasGlossary](glossaryGUID)
+func testRetrieveGlossary(t *testing.T, client *AtlanClient, glossaryGUID string) {
+	glossary, err := GetByGuid[*AtlasGlossary](client, glossaryGUID)
 	if err != nil {
 		fmt.Println("Error:", err)
 	}
@@ -69,8 +69,8 @@ func testRetrieveGlossary(t *testing.T, glossaryGUID string) {
 	assert.Equal(t, glossaryGUID, *glossary.Guid, "glossary guid should match")
 }
 
-func testRetrieveGlossarybyQualifiedName(t *testing.T, glossaryQualifiedName string) {
-	glossary, err := GetByQualifiedName[*AtlasGlossary](glossaryQualifiedName)
+func testRetrieveGlossarybyQualifiedName(t *testing.T, client *AtlanClient, glossaryQualifiedName string) {
+	glossary, err := GetByQualifiedName[*AtlasGlossary](client, glossaryQualifiedName)
 	if err != nil {
 		fmt.Println("Error:", err)
 	}
@@ -78,8 +78,8 @@ func testRetrieveGlossarybyQualifiedName(t *testing.T, glossaryQualifiedName str
 	assert.Equal(t, glossaryQualifiedName, *glossary.QualifiedName, "glossary qualified name should match")
 }
 
-func testDeleteGlossary(t *testing.T, glossaryGUID string) {
-	deleteresponse, err := PurgeByGuid([]string{glossaryGUID})
+func testDeleteGlossary(t *testing.T, client *AtlanClient, glossaryGUID string) {
+	deleteresponse, err := PurgeByGuid(client, []string{glossaryGUID})
 	if err != nil {
 		fmt.Println("Error:", err)
 	}

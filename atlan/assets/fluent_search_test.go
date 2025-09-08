@@ -23,7 +23,7 @@ func TestIntegrationFluentSearch(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
 	}
-	ctx := NewContext()
+	client := NewContext()
 
 	// Create a glossary
 	g := &AtlasGlossary{}
@@ -33,7 +33,7 @@ func TestIntegrationFluentSearch(t *testing.T) {
 	g.AnnouncementTitle = structs.StringPtr(AnnouncementTitle)
 	g.AnnouncementMessage = structs.StringPtr(AnnouncementMessage)
 
-	response, err := Save(g)
+	response, err := Save(client, g)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -44,7 +44,7 @@ func TestIntegrationFluentSearch(t *testing.T) {
 	searchResult, err := NewFluentSearch().
 		PageSizes(10).
 		ActiveAssets().
-		Where(ctx.Glossary.NAME.Eq(GlossaryName)).
+		Where(client.Glossary.NAME.Eq(GlossaryName)).
 		IncludeOnResults("description", "announcementType", "announcementTitle", "announcementMessage").
 		Execute()
 	if err != nil {
@@ -66,7 +66,7 @@ func TestIntegrationFluentSearch(t *testing.T) {
 	searchResult, err = NewFluentSearch().
 		PageSizes(10).
 		ActiveAssets().
-		Where(ctx.Glossary.NAME.StartsWith("gsdk", nil)).
+		Where(client.Glossary.NAME.StartsWith("gsdk", nil)).
 		Sort(NAME, atlan.SortOrderAscending).
 		Execute()
 	if err != nil {
@@ -81,6 +81,6 @@ func TestIntegrationFluentSearch(t *testing.T) {
 	assert.Equal(t, "g", string((*glossary.DisplayName)[0]), "glossary name should start with G")
 
 	// Delete already created glossary
-	deleteresponse, _ := PurgeByGuid([]string{response.MutatedEntities.CREATE[0].Guid})
+	deleteresponse, _ := PurgeByGuid(client, []string{response.MutatedEntities.CREATE[0].Guid})
 	assert.NotNil(t, deleteresponse, "fetched glossary should not be nil")
 }

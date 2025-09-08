@@ -14,10 +14,6 @@ func Search(request model.IndexSearchRequest, client *AtlanClient) (*model.Index
 	// Define the API endpoint and method
 	api := &INDEX_SEARCH
 
-	if client == nil {
-		client = DefaultAtlanClient
-	}
-
 	if request.Dsl.Size == 0 {
 		request.Dsl.Size = 300 // Switch to default page size
 	}

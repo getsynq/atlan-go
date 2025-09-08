@@ -23,7 +23,7 @@ type AtlanTagCache struct {
 // NewAtlanTagCache creates a new AtlanTagCache instance.
 func NewAtlanTagCache(atlanClient *AtlanClient) *AtlanTagCache {
 	return &AtlanTagCache{
-		atlanClient:  DefaultAtlanClient,
+		atlanClient:  atlanClient,
 		cacheByID:    make(map[string]model.AtlanTagDef),
 		mapIDToName:  make(map[string]string),
 		mapNameToID:  make(map[string]string),
@@ -38,8 +38,7 @@ var (
 )
 
 // GetCache returns the AtlanTagCache for the default AtlanClient.
-func GetAtlanTagCache() *AtlanTagCache {
-	client := DefaultAtlanClient
+func GetAtlanTagCache(client *AtlanClient) *AtlanTagCache {
 	cacheKey := generateCacheKey(client.host, client.ApiKey)
 
 	mu.Lock()
@@ -58,25 +57,13 @@ func GetAtlanTagCache() *AtlanTagCache {
 	return caches[cacheKey]
 }
 
-func RefreshCache() {
-	GetAtlanTagCache().RefreshCache()
-}
-
-func GetAtlanTagIDForName(name string) (string, error) {
-	return GetAtlanTagCache().GetIDForName(name)
-}
-
-func GetAtlanTagNameForID(idstr string) (string, error) {
-	return GetAtlanTagCache().GetNameForID(idstr)
-}
-
 // RefreshCache ref	reshes the cache of Atlan tags by requesting the full set of Atlan tags from Atlan.
 // RefreshCache updates the AtlanTagCache with the latest data from Atlan.
 func (c *AtlanTagCache) RefreshCache() error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	response, err := Get(atlan.AtlanTypeCategoryClassification)
+	response, err := NewTypeDefClient(c.atlanClient).Get(atlan.AtlanTypeCategoryClassification)
 	if err != nil {
 		fmt.Printf("Error making API call: %v", err)
 		return err

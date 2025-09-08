@@ -11,9 +11,18 @@ import (
 )
 
 type (
-	AtlanUser  structs.AtlanUser
-	UserClient AtlanClient
+	AtlanUser structs.AtlanUser
 )
+
+type UserClient struct {
+	client *AtlanClient
+}
+
+func NewUserClient(client *AtlanClient) *UserClient {
+	return &UserClient{
+		client: client,
+	}
+}
 
 type CreateUser struct {
 	Email    string `json:"email"`
@@ -46,27 +55,25 @@ func (uc *UserClient) CreateUsers(users []AtlanUser, returnInfo bool) ([]AtlanUs
 		return nil, fmt.Errorf("no users provided for creation")
 	}
 
+	roleCache, err := GetRoleCache(uc.client)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get role cache : %w", err)
+	}
+
 	var cur CreateUserRequest
 	for _, user := range users {
 		if user.WorkspaceRole == "" || user.Email == "" {
 			return nil, fmt.Errorf("email and workspace role must not be nil")
 		}
 
-		// Fetch the role ID from roleCache
-		roleID, err := GetRoleIDForRoleName(user.WorkspaceRole)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch role ID for role '%s': %w", user.WorkspaceRole, err)
-		}
-
 		cur.Users = append(cur.Users, CreateUser{
 			Email:    user.Email,
 			RoleName: user.WorkspaceRole,
-			RoleID:   roleID,
+			RoleID:   roleCache.GetRoleIDForRoleName(user.WorkspaceRole),
 		})
 	}
 
-	_, err := DefaultAtlanClient.CallAPI(&CREATE_USERS, nil, cur)
-	if err != nil {
+	if _, err := uc.client.CallAPI(&CREATE_USERS, nil, cur); err != nil {
 		return nil, fmt.Errorf("failed to create users: %w", err)
 	}
 
@@ -117,7 +124,7 @@ func (uc *UserClient) Get(limit int, postFilter string, sort string, count bool,
 
 	queryParams := request.QueryParams()
 
-	rawJson, err := DefaultAtlanClient.CallAPI(&GET_USERS, queryParams, nil)
+	rawJson, err := uc.client.CallAPI(&GET_USERS, queryParams, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +135,7 @@ func (uc *UserClient) Get(limit int, postFilter string, sort string, count bool,
 		return nil, err
 	}
 
-	userResponse.Client = DefaultAtlanClient
+	userResponse.Client = uc.client
 	userResponse.Endpoint = &GET_USERS
 	userResponse.Criteria = request
 	userResponse.Start = request.Offset
@@ -239,7 +246,7 @@ func (uc *UserClient) GetGroups(guid string, request *structs.GroupRequest) ([]*
 
 	queryParams := request.QueryParams()
 
-	responseData, err := DefaultAtlanClient.CallAPI(api, queryParams, nil)
+	responseData, err := uc.client.CallAPI(api, queryParams, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve groups for user %s: %w", guid, err)
 	}
@@ -281,7 +288,7 @@ func (uc *UserClient) AddUserToGroups(guid string, groupIDs []string) error {
 	api := &ADD_USER_TO_GROUPS
 	api.Path = fmt.Sprintf("users/%s/groups", guid)
 
-	_, err := DefaultAtlanClient.CallAPI(api, nil, requestPayload)
+	_, err := uc.client.CallAPI(api, nil, requestPayload)
 	if err != nil {
 		return fmt.Errorf("failed to add user to groups: %w", err)
 	}
@@ -322,7 +329,7 @@ func (uc *UserClient) ChangeUserRole(guid string, roleID string) error {
 	api := &CHANGE_USER_ROLE
 	api.Path = fmt.Sprintf("users/%s/roles/update", guid)
 
-	_, err := DefaultAtlanClient.CallAPI(api, nil, requestPayload)
+	_, err := uc.client.CallAPI(api, nil, requestPayload)
 	if err != nil {
 		return fmt.Errorf("failed to change user role: %w", err)
 	}
@@ -393,7 +400,7 @@ func (r *UserResponse) getNextPage() (bool, error) {
 	r.Criteria.Limit = r.Size
 
 	queryParams := r.Criteria.QueryParams()
-	responseBytes, err := DefaultAtlanClient.CallAPI(r.Endpoint, queryParams, nil)
+	responseBytes, err := r.Client.CallAPI(r.Endpoint, queryParams, nil)
 	if err != nil {
 		return false, err
 	}

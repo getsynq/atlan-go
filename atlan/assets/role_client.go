@@ -32,7 +32,7 @@ func (r *RoleClient) Get(limit int, postFilter, sort string, count bool, offset 
 		queryParams["sort"] = sort
 	}
 
-	resp, err := DefaultAtlanClient.CallAPI(&GET_ROLES, queryParams, nil)
+	resp, err := r.roleClient.CallAPI(&GET_ROLES, queryParams, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch roles: %w", err)
 	}
@@ -46,7 +46,7 @@ func (r *RoleClient) Get(limit int, postFilter, sort string, count bool, offset 
 
 // GetAll retrieves all roles defined in Atlan.
 func (r *RoleClient) GetAll() (*structs.RoleResponse, error) {
-	resp, err := DefaultAtlanClient.CallAPI(&GET_ROLES, nil, nil)
+	resp, err := r.roleClient.CallAPI(&GET_ROLES, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch all roles: %w", err)
 	}

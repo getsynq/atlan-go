@@ -13,7 +13,7 @@ func TestGetTypeDefinitionsIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
 	}
-	NewContext()
+	client := NewContext()
 
 	// Example categories to test
 	categories := []atlan.AtlanTypeCategory{
@@ -21,7 +21,7 @@ func TestGetTypeDefinitionsIntegration(t *testing.T) {
 	}
 
 	// Test getting type definitions
-	response, err := Get(categories)
+	response, err := NewTypeDefClient(client).Get(categories)
 	require.NoError(t, err, "Expected no error from Get")
 	assert.NotNil(t, response, "Expected a valid response from Get")
 

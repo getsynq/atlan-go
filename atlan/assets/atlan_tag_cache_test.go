@@ -34,7 +34,7 @@ func TestIntegrationAtlanTagCache_GetIDForName(t *testing.T) {
 	cache := NewAtlanTagCache(client)
 
 	// Ensure the cache is populated
-	resp, err := GetAll()
+	resp, err := NewTypeDefClient(client).GetAll()
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.NotEmpty(t, resp.AtlanTagDefs, "No Atlan tags found in the system")
@@ -63,7 +63,7 @@ func TestIntegrationAtlanTagCache_GetNameForID(t *testing.T) {
 	cache := NewAtlanTagCache(client)
 
 	// Ensure the cache is populated
-	resp, err := GetAll()
+	resp, err := NewTypeDefClient(client).GetAll()
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.NotEmpty(t, resp.AtlanTagDefs, "No Atlan tags found in the system")

@@ -63,12 +63,12 @@ func NewTypeDefResponse(rawJSON []byte) (*model.TypeDefResponse, error) {
 	return &response, nil
 }
 
-func RefreshCaches(typedef model.TypeDef) error {
+func (c *TypeDefClient) refreshCaches(typedef model.TypeDef) error {
 	switch t := typedef.(type) {
 	case *model.AtlanTagDef:
-		return GetAtlanTagCache().RefreshCache()
+		return GetAtlanTagCache(c.Client).RefreshCache()
 	case *model.CustomMetadataDef:
-		return GetCustomMetadataCache().RefreshCache()
+		return GetCustomMetadataCache(c.Client).RefreshCache()
 	case model.EnumDef:
 		// return EnumCache.RefreshCache()
 	default:
@@ -77,8 +77,8 @@ func RefreshCaches(typedef model.TypeDef) error {
 	return nil
 }
 
-func GetAll() (*model.TypeDefResponse, error) {
-	rawJSON, err := DefaultAtlanClient.CallAPI(&GET_ALL_TYPE_DEFS, nil, nil)
+func (c *TypeDefClient) GetAll() (*model.TypeDefResponse, error) {
+	rawJSON, err := c.Client.CallAPI(&GET_ALL_TYPE_DEFS, nil, nil)
 	if err != nil {
 		return nil, AtlanError{
 			ErrorCode: errorCodes[CONNECTION_ERROR],
@@ -89,7 +89,7 @@ func GetAll() (*model.TypeDefResponse, error) {
 }
 
 // Get retrieves a TypeDefResponse object that contains a list of the specified category type definitions in Atlan.
-func Get(typeCategory interface{}) (*model.TypeDefResponse, error) {
+func (c *TypeDefClient) Get(typeCategory interface{}) (*model.TypeDefResponse, error) {
 	var categories []string
 	hasStruct := false
 
@@ -118,7 +118,7 @@ func Get(typeCategory interface{}) (*model.TypeDefResponse, error) {
 		"type": categories,
 	}
 
-	rawJSON, err := DefaultAtlanClient.CallAPI(&GET_ALL_TYPE_DEFS, queryParams, nil)
+	rawJSON, err := c.Client.CallAPI(&GET_ALL_TYPE_DEFS, queryParams, nil)
 	if err != nil {
 		return nil, AtlanError{
 			ErrorCode: errorCodes[CONNECTION_ERROR],
@@ -149,7 +149,7 @@ func (c *TypeDefClient) Create(typedef model.TypeDef) (*model.TypeDefResponse, e
 	if err != nil {
 		return nil, err
 	}
-	RefreshCaches(typedef)
+	c.refreshCaches(typedef)
 	return NewTypeDefResponse(rawJSON)
 }
 
@@ -162,7 +162,7 @@ func (c *TypeDefClient) Update(typedef model.TypeDef) (*model.TypeDefResponse, e
 	if err != nil {
 		return nil, err
 	}
-	RefreshCaches(typedef)
+	c.refreshCaches(typedef)
 	return NewTypeDefResponse(rawJSON)
 }
 
@@ -170,11 +170,11 @@ func (c *TypeDefClient) Purge(name string, typedefType model.TypeDef) error {
 	var internalName string
 	switch t := typedefType.(type) {
 	case *model.CustomMetadataDef:
-		internalName, _ = GetCustomMetadataCache().GetIDForName(name)
+		internalName, _ = GetCustomMetadataCache(c.Client).GetIDForName(name)
 	case *model.EnumDef:
 		// internalName = name
 	case *model.AtlanTagDef:
-		internalName, _ = GetAtlanTagCache().GetIDForName(name)
+		internalName, _ = GetAtlanTagCache(c.Client).GetIDForName(name)
 	default:
 		return fmt.Errorf("unsupported TypeDef type: %T", t)
 	}
@@ -187,11 +187,11 @@ func (c *TypeDefClient) Purge(name string, typedefType model.TypeDef) error {
 
 	switch t := typedefType.(type) {
 	case *model.CustomMetadataDef:
-		GetCustomMetadataCache().RefreshCache()
+		GetCustomMetadataCache(c.Client).RefreshCache()
 	case *model.EnumDef:
 		// EnumCache.refreshCache()
 	case *model.AtlanTagDef:
-		RefreshCache()
+		GetAtlanTagCache(c.Client).RefreshCache()
 	default:
 		return fmt.Errorf("unsupported TypeDef type: %T", t)
 	}

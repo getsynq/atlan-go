@@ -21,11 +21,10 @@ var (
 )
 
 // GetGroupCache retrieves the GroupCache for the default Atlan client.
-func GetGroupCache() (*GroupCache, error) {
+func GetGroupCache(client *AtlanClient) (*GroupCache, error) {
 	groupMutex.Lock()
 	defer groupMutex.Unlock()
 
-	client := DefaultAtlanClient
 	cacheKey := generateCacheKey(client.host, client.ApiKey)
 
 	if groupCaches[cacheKey] == nil {
@@ -38,42 +37,6 @@ func GetGroupCache() (*GroupCache, error) {
 		}
 	}
 	return groupCaches[cacheKey], nil
-}
-
-// GetGroupIDForGroupName translates the provided group name to its GUID.
-func GetGroupIDForGroupName(name string) (string, error) {
-	cache, err := GetGroupCache()
-	if err != nil {
-		return "", err
-	}
-	return cache.getIDForName(name), nil
-}
-
-// GetGroupIDForAlias translates the provided group alias to its GUID.
-func GetGroupIDForAlias(alias string) (string, error) {
-	cache, err := GetGroupCache()
-	if err != nil {
-		return "", err
-	}
-	return cache.getIDForAlias(alias), nil
-}
-
-// GetGroupNameForGroupID translates the provided group GUID to its name.
-func GetGroupNameForGroupID(id string) (string, error) {
-	cache, err := GetGroupCache()
-	if err != nil {
-		return "", err
-	}
-	return cache.getNameForID(id), nil
-}
-
-// ValidateGroupAliases validates that the given group aliases are valid.
-func ValidateGroupAliases(aliases []string) error {
-	cache, err := GetGroupCache()
-	if err != nil {
-		return err
-	}
-	return cache.validateAliases(aliases)
 }
 
 func (gc *GroupCache) refreshCache() error {
@@ -104,7 +67,8 @@ func (gc *GroupCache) refreshCache() error {
 	return nil
 }
 
-func (gc *GroupCache) getIDForName(name string) string {
+// GetGroupIDForGroupName translates the provided group name to its GUID.
+func (gc *GroupCache) GetGroupIDForGroupName(name string) string {
 	if id, exists := gc.mapNameToID[name]; exists {
 		return id
 	}
@@ -112,7 +76,8 @@ func (gc *GroupCache) getIDForName(name string) string {
 	return gc.mapNameToID[name]
 }
 
-func (gc *GroupCache) getIDForAlias(alias string) string {
+// GetGroupIDForAlias translates the provided group alias to its GUID.
+func (gc *GroupCache) GetGroupIDForAlias(alias string) string {
 	if id, exists := gc.mapAliasToID[alias]; exists {
 		return id
 	}
@@ -120,7 +85,8 @@ func (gc *GroupCache) getIDForAlias(alias string) string {
 	return gc.mapAliasToID[alias]
 }
 
-func (gc *GroupCache) getNameForID(id string) string {
+// GetGroupNameForGroupID translates the provided group GUID to its name.
+func (gc *GroupCache) GetGroupNameForGroupID(id string) string {
 	if name, exists := gc.mapIDToName[id]; exists {
 		return name
 	}
@@ -128,7 +94,8 @@ func (gc *GroupCache) getNameForID(id string) string {
 	return gc.mapIDToName[id]
 }
 
-func (gc *GroupCache) validateAliases(aliases []string) error {
+// ValidateGroupAliases validates that the given group aliases are valid.
+func (gc *GroupCache) ValidateGroupAliases(aliases []string) error {
 	for _, alias := range aliases {
 		if _, exists := gc.mapAliasToID[alias]; !exists {
 			gc.refreshCache()

@@ -17,38 +17,37 @@ func TestIntegrationGroupClient(t *testing.T) {
 		t.Skip("skipping integration test")
 	}
 
-	NewContext()
+	client := NewContext()
+	gc := &GroupClient{client: client}
 
 	// ctx.EnableLogging("debug")
 
 	// Test creating a group
-	group := testCreateGroup(t)
+	group := testCreateGroup(t, gc)
 
 	// Test Retrieve all groups
-	testRetrieveAllGroups(t)
+	testRetrieveAllGroups(t, gc)
 
 	// Test retrieving group by name
-	testRetrieveGroupByName(t)
+	testRetrieveGroupByName(t, gc)
 
 	// Test Add Users to group
-	testAddUsersToGroup(t, *group.ID)
+	testAddUsersToGroup(t, gc, *group.ID)
 
 	// Test updating the group
-	testUpdateGroup(t, *group.ID, *group.Path)
+	testUpdateGroup(t, gc, *group.ID, *group.Path)
 
 	// Test Retrieve Members
-	memberID := testRetrieveMembers(t, *group.ID)
+	memberID := testRetrieveMembers(t, gc, *group.ID)
 
 	// Test removing users from the group
-	testRemoveUsersFromGroup(t, *group.ID, memberID)
+	testRemoveUsersFromGroup(t, gc, *group.ID, memberID)
 
 	// Test purging the group
-	testPurgeGroup(t, *group.ID)
+	testPurgeGroup(t, gc, *group.ID)
 }
 
-func testCreateGroup(t *testing.T) *AtlanGroup {
-	client := &GroupClient{}
-
+func testCreateGroup(t *testing.T, client *GroupClient) *AtlanGroup {
 	// Create a Group
 	group := AtlanGroup{}
 	toBeCreated, err := group.Create(TestGroupAlias)
@@ -69,9 +68,7 @@ func testCreateGroup(t *testing.T) *AtlanGroup {
 	return groups[0]
 }
 
-func testRetrieveAllGroups(t *testing.T) {
-	client := &GroupClient{}
-
+func testRetrieveAllGroups(t *testing.T, client *GroupClient) {
 	groups, err := client.GetAll(10, 0, "")
 	require.NoError(t, err, "error should be nil while retrieving all groups")
 	assert.NotNil(t, groups, "retrieved groups should not be nil")
@@ -81,9 +78,7 @@ func testRetrieveAllGroups(t *testing.T) {
 	//}
 }
 
-func testRetrieveGroupByName(t *testing.T) {
-	client := &GroupClient{}
-
+func testRetrieveGroupByName(t *testing.T, client *GroupClient) {
 	groups, err := client.GetByName(TestGroupAlias, 10, 0)
 	require.NoError(t, err, "error should be nil while retrieving group by name")
 	assert.NotNil(t, groups, "retrieved groups should not be nil")
@@ -94,17 +89,15 @@ func testRetrieveGroupByName(t *testing.T) {
 	//}
 }
 
-func testAddUsersToGroup(t *testing.T, groupID string) {
-	client := &GroupClient{}
-
+func testAddUsersToGroup(t *testing.T, client *GroupClient, groupID string) {
 	// This is a dependency issue on user-client test (which creates the user). This test runs before the user-client test
 	// which creates an issue if the user doesn't exist. So, we add a check here.
 	// Checks if the test user exists or not and creates it if it doesn't
-	testUser := getOrCreateTestUser(t)
+	testUser := getOrCreateTestUser(t, NewUserClient(client.client))
 	// Directly uses the Email from the created / existing user
-	user, err := client.UserClient.GetByEmail(testUser.Email, 1, 0)
+	user, err := client.client.UserClient.GetByEmail(testUser.Email, 1, 0)
 	require.NoError(t, err, "error should be nil while getting user by email")
-	err = client.UserClient.AddUserToGroups(user[0].ID, []string{groupID})
+	err = client.client.UserClient.AddUserToGroups(user[0].ID, []string{groupID})
 	require.NoError(t, err, "error should be nil while adding user to group")
 
 	// Verify user was added (Also tests GetMembers Endpoint)
@@ -120,8 +113,7 @@ func testAddUsersToGroup(t *testing.T, groupID string) {
 	assert.True(t, found, "added user should be present in the group")
 }
 
-func testUpdateGroup(t *testing.T, groupID string, path string) {
-	client := &GroupClient{}
+func testUpdateGroup(t *testing.T, client *GroupClient, groupID string, path string) {
 	group := AtlanGroup{}
 
 	toBeUpdated, err := group.Updater(groupID, path)
@@ -142,9 +134,7 @@ func testUpdateGroup(t *testing.T, groupID string, path string) {
 	assert.Equal(t, updatedDescription, updatedGroups[0].Attributes.Description, "group description should match the updated value")
 }
 
-func testRetrieveMembers(t *testing.T, guid string) string {
-	client := &GroupClient{}
-
+func testRetrieveMembers(t *testing.T, client *GroupClient, guid string) string {
 	members, err := client.GetMembers(guid, nil)
 	require.NoError(t, err, "error should be nil while retrieving group members")
 	assert.NotEmpty(t, members, "group should have at least one member")
@@ -152,9 +142,7 @@ func testRetrieveMembers(t *testing.T, guid string) string {
 	return members[0].ID
 }
 
-func testRemoveUsersFromGroup(t *testing.T, guid string, memberID string) {
-	client := &GroupClient{}
-
+func testRemoveUsersFromGroup(t *testing.T, client *GroupClient, guid string, memberID string) {
 	userIDs := []string{memberID}
 
 	err := client.RemoveUsers(guid, userIDs)
@@ -171,8 +159,7 @@ func testRemoveUsersFromGroup(t *testing.T, guid string, memberID string) {
 	}
 }
 
-func testPurgeGroup(t *testing.T, groupID string) {
-	client := &GroupClient{}
+func testPurgeGroup(t *testing.T, client *GroupClient, groupID string) {
 	err := client.Purge(groupID)
 	require.NoError(t, err, "error should be nil while purging the group")
 }

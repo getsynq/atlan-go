@@ -29,7 +29,7 @@ type CustomMetadataCache struct {
 // NewCustomMetadataCache creates a new CustomMetadataCache instance.
 func NewCustomMetadataCache(atlanClient *AtlanClient) *CustomMetadataCache {
 	return &CustomMetadataCache{
-		AtlanClient:     DefaultAtlanClient,
+		AtlanClient:     atlanClient,
 		CacheByID:       make(map[string]model.CustomMetadataDef),
 		AttrCacheByID:   make(map[string]model.AttributeDef),
 		MapIDToName:     make(map[string]string),
@@ -42,22 +42,8 @@ func NewCustomMetadataCache(atlanClient *AtlanClient) *CustomMetadataCache {
 
 var customMetadataCaches = make(map[string]*CustomMetadataCache)
 
-func RefreshCustomMetadataCache() {
-	GetCustomMetadataCache().RefreshCache()
-}
-
-func GetAttributeDef(attrID string) model.AttributeDef {
-	attrdef, _ := GetCustomMetadataCache().GetAttributeDef(attrID)
-	return attrdef
-}
-
-func GetCustomMetadataIDforName(name string) (string, error) {
-	return GetCustomMetadataCache().GetIDForName(name)
-}
-
 // GetCustomMetadataCache returns the CustomMetadataCache for the default AtlanClient.
-func GetCustomMetadataCache() *CustomMetadataCache {
-	client := DefaultAtlanClient
+func GetCustomMetadataCache(client *AtlanClient) *CustomMetadataCache {
 	cacheKey := generateCacheKey(client.host, client.ApiKey)
 
 	mu.Lock()
@@ -87,7 +73,7 @@ func (c *CustomMetadataCache) RefreshCache() error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	response, err := Get(atlan.AtlanTypeCategoryBusinessMetadata)
+	response, err := NewTypeDefClient(c.AtlanClient).Get(atlan.AtlanTypeCategoryBusinessMetadata)
 	if err != nil {
 		return err
 	}

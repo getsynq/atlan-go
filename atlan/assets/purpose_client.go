@@ -9,7 +9,16 @@ import (
 	"github.com/atlanhq/atlan-go/atlan/model/structs"
 )
 
-type Purpose structs.Purpose
+type Purpose struct {
+	structs.Purpose
+	client *AtlanClient
+}
+
+func NewPurpose(client *AtlanClient) *Purpose {
+	return &Purpose{
+		client: client,
+	}
+}
 
 // Creator is used to create a new purpose asset in memory.
 func (p *Purpose) Creator(name string, atlanTags []string) error {
@@ -18,7 +27,7 @@ func (p *Purpose) Creator(name string, atlanTags []string) error {
 
 	var atlanTagValues []structs.AtlanTagName
 	for _, tag := range atlanTags {
-		newTag, err := NewAtlanTagName(tag)
+		newTag, err := p.newAtlanTagName(tag)
 		if err != nil {
 			return fmt.Errorf("failed to create AtlanTagName for %s: %w", tag, err)
 		}
@@ -221,8 +230,9 @@ func FindPurposesByName(name string) (*model.IndexSearchResponse, error) {
 }
 
 // NewAtlanTagName creates a new AtlanTagName instance, validating against the cache.
-func NewAtlanTagName(displayText string) (*structs.AtlanTagName, error) {
-	id, _ := GetAtlanTagIDForName(displayText)
+func (p *Purpose) newAtlanTagName(displayText string) (*structs.AtlanTagName, error) {
+	tagCache := GetAtlanTagCache(p.client)
+	id, _ := tagCache.GetIDForName(displayText)
 	if id == "" {
 		return nil, fmt.Errorf("%s is not a valid Classification", displayText)
 	}
