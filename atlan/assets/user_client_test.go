@@ -18,26 +18,25 @@ func TestIntegrationUserClient(t *testing.T) {
 		t.Skip("skipping integration test")
 	}
 
-	NewContext()
+	client := NewContext()
+	uc := NewUserClient(client)
 
 	// ctx.EnableLogging("debug")
 
 	// Test user creation
-	createdUser := getOrCreateTestUser(t)
+	createdUser := getOrCreateTestUser(t, uc)
 
 	// Test retrieval by email
-	testRetrieveUserByEmail(t, createdUser.Email)
+	testRetrieveUserByEmail(t, uc, createdUser.Email)
 
 	// Test retrieval by username
-	testRetrieveUserByUsername(t, *createdUser.Username)
+	testRetrieveUserByUsername(t, uc, *createdUser.Username)
 
 	// Test updating user's role
-	testChangeUserRole(t, createdUser.ID)
+	testChangeUserRole(t, uc, createdUser.ID)
 }
 
-func getOrCreateTestUser(t *testing.T) *AtlanUser {
-	client := &UserClient{}
-
+func getOrCreateTestUser(t *testing.T, client *UserClient) *AtlanUser {
 	// Check if user already exists
 	existingUser, err := client.GetByEmail(UserEmail, 1, 0)
 	if err == nil && len(existingUser) > 0 {
@@ -66,9 +65,7 @@ func getOrCreateTestUser(t *testing.T) *AtlanUser {
 	return &user
 }
 
-func testRetrieveUserByEmail(t *testing.T, email string) {
-	client := &UserClient{}
-
+func testRetrieveUserByEmail(t *testing.T, client *UserClient, email string) {
 	users, err := client.GetByEmail(email, 1, 0)
 	require.NoError(t, err, "error should be nil while retrieving user by email")
 	assert.NotNil(t, users, "retrieved users should not be nil")
@@ -78,22 +75,21 @@ func testRetrieveUserByEmail(t *testing.T, email string) {
 	assert.Equal(t, email, user.Email, "user email should match")
 }
 
-func testRetrieveUserByUsername(t *testing.T, username string) {
-	client := &UserClient{}
-
+func testRetrieveUserByUsername(t *testing.T, client *UserClient, username string) {
 	user, err := client.GetByUsername(username)
 	require.NoError(t, err, "error should be nil while retrieving user by username")
 	assert.NotNil(t, user, "retrieved user should not be nil")
 	assert.Equal(t, username, *user.Username, "user username should match")
 }
 
-func testChangeUserRole(t *testing.T, userID string) {
-	client := &UserClient{}
+func testChangeUserRole(t *testing.T, client *UserClient, userID string) {
+	roleCache, err := GetRoleCache(client.client)
+	require.NoError(t, err, "error should be nil while getting role cache")
 
 	role := "$member"
-	newRoleID, _ := GetRoleIDForRoleName(role)
+	newRoleID := roleCache.GetRoleIDForRoleName(role)
 
-	err := client.ChangeUserRole(userID, newRoleID)
+	err = client.ChangeUserRole(userID, newRoleID)
 	require.NoError(t, err, "error should be nil while updating user's role")
 
 	// Verify the role change
@@ -104,7 +100,7 @@ func testChangeUserRole(t *testing.T, userID string) {
 
 	// Revert to original role
 	revertRole := "$guest"
-	revertRoleId, _ := GetRoleIDForRoleName(revertRole)
+	revertRoleId := roleCache.GetRoleIDForRoleName(revertRole)
 	err = client.ChangeUserRole(userID, revertRoleId)
 	require.NoError(t, err, "error should be nil while updating user's role")
 

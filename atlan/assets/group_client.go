@@ -10,7 +10,15 @@ import (
 
 type AtlanGroup structs.AtlanGroup
 
-type GroupClient AtlanClient
+type GroupClient struct {
+	client *AtlanClient
+}
+
+func NewGroupClient(client *AtlanClient) *GroupClient {
+	return &GroupClient{
+		client: client,
+	}
+}
 
 // Create creates a new Atlan group with the given alias.
 func (g *AtlanGroup) Create(alias string) (*AtlanGroup, error) {
@@ -59,7 +67,7 @@ func (gc *GroupClient) Update(group *AtlanGroup) error {
 	api := &UPDATE_GROUP
 	api.Path = fmt.Sprintf("groups/%s", *group.ID)
 
-	_, err := DefaultAtlanClient.CallAPI(api, nil, group)
+	_, err := gc.client.CallAPI(api, nil, group)
 	if err != nil {
 		return fmt.Errorf("failed to update group: %w", err)
 	}
@@ -76,7 +84,7 @@ func (gc *GroupClient) Purge(guid string) error {
 	api := &DELETE_GROUP
 	api.Path = fmt.Sprintf("groups/%s/delete", guid)
 
-	_, err := DefaultAtlanClient.CallAPI(api, nil, requestPayload)
+	_, err := gc.client.CallAPI(api, nil, requestPayload)
 	if err != nil {
 		return fmt.Errorf("failed to delete group: %w", err)
 	}
@@ -111,7 +119,7 @@ func (gc *GroupClient) Create(group *AtlanGroup, userIDs []string) (*structs.Cre
 		payload.Users = userIDs
 	}
 
-	responseData, err := DefaultAtlanClient.CallAPI(&CREATE_GROUP, nil, payload)
+	responseData, err := gc.client.CallAPI(&CREATE_GROUP, nil, payload)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +144,7 @@ func (gc *GroupClient) Get(limit int, postFilter, sort string, count bool, offse
 
 	queryParams := request.QueryParams()
 
-	responseData, err := DefaultAtlanClient.CallAPI(&GET_GROUPS, queryParams, nil)
+	responseData, err := gc.client.CallAPI(&GET_GROUPS, queryParams, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +188,7 @@ func (gc *GroupClient) GetMembers(guid string, request *structs.UserRequest) ([]
 	api := &GET_GROUP_MEMBERS
 	api.Path = fmt.Sprintf("groups/%s/members", guid)
 
-	responseData, err := DefaultAtlanClient.CallAPI(api, request.QueryParams(), nil)
+	responseData, err := gc.client.CallAPI(api, request.QueryParams(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +217,7 @@ func (gc *GroupClient) RemoveUsers(guid string, userIDs []string) error {
 
 	api := &REMOVE_USERS_FROM_GROUP
 	api.Path = fmt.Sprintf("groups/%s/members/remove", guid)
-	_, err := DefaultAtlanClient.CallAPI(api, nil, request)
+	_, err := gc.client.CallAPI(api, nil, request)
 	return err
 }
 

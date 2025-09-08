@@ -126,7 +126,7 @@ func (b *Batch) Flush() (*model.AssetMutationResponse, error) {
 		return nil, nil // No assets to process
 	}
 
-	response, err := Save(b.batch...)
+	response, err := Save(b.client, b.batch...)
 	if err != nil {
 		if b.captureFailures {
 			b.failures = append(b.failures, FailedBatch{

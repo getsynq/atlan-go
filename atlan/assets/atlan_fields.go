@@ -324,8 +324,13 @@ type CustomMetadataField struct {
 	AttributeDef  model.AttributeDef
 }
 
-func NewCustomMetadataField(setName, attributeName string) (*CustomMetadataField, error) {
-	elasticFieldName, err := GetCustomMetadataCache().GetAttrIDForName(setName, attributeName)
+func NewCustomMetadataField(client *AtlanClient, setName, attributeName string) (*CustomMetadataField, error) {
+	cache := GetCustomMetadataCache(client)
+	elasticFieldName, err := cache.GetAttrIDForName(setName, attributeName)
+	if err != nil {
+		return nil, err
+	}
+	attributeDef, err := cache.GetAttributeDef(elasticFieldName)
 	if err != nil {
 		return nil, err
 	}
@@ -334,7 +339,7 @@ func NewCustomMetadataField(setName, attributeName string) (*CustomMetadataField
 		SearchableField: searchableField,
 		SetName:         setName,
 		AttributeName:   attributeName,
-		AttributeDef:    GetAttributeDef(elasticFieldName),
+		AttributeDef:    attributeDef,
 	}, nil
 }
 

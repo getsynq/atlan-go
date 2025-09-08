@@ -7,7 +7,15 @@ import (
 	"github.com/getsynq/atlan-go/atlan/model/structs"
 )
 
-type TokenClient AtlanClient
+type TokenClient struct {
+	client *AtlanClient
+}
+
+func NewTokenClient(client *AtlanClient) *TokenClient {
+	return &TokenClient{
+		client: client,
+	}
+}
 
 // Get retrieves an ApiTokenResponse with a list of API tokens based on the provided parameters.
 func (tc *TokenClient) Get(limit *int, postFilter, sort *string, count bool, offset int) (*ApiTokenResponse, error) {
@@ -25,7 +33,7 @@ func (tc *TokenClient) Get(limit *int, postFilter, sort *string, count bool, off
 		queryParams["sort"] = *sort
 	}
 
-	rawJSON, err := DefaultAtlanClient.CallAPI(&GET_API_TOKENS, queryParams, nil)
+	rawJSON, err := tc.client.CallAPI(&GET_API_TOKENS, queryParams, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +106,7 @@ func (tc *TokenClient) Create(displayName, description *string, personas []strin
 		request.ValiditySeconds = validitySeconds
 	}
 
-	rawJSON, err := DefaultAtlanClient.CallAPI(&UPSERT_API_TOKEN, nil, request)
+	rawJSON, err := tc.client.CallAPI(&UPSERT_API_TOKEN, nil, request)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +140,7 @@ func (tc *TokenClient) Update(guid, displayName, description *string, personas [
 
 	api := &UPSERT_API_TOKEN
 	api.Path = fmt.Sprintf("apikeys/%s", *guid)
-	rawJSON, err := DefaultAtlanClient.CallAPI(api, nil, request)
+	rawJSON, err := tc.client.CallAPI(api, nil, request)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +158,7 @@ func (tc *TokenClient) Update(guid, displayName, description *string, personas [
 func (tc *TokenClient) Purge(guid string) error {
 	api := &DELETE_API_TOKEN
 	api.Path = fmt.Sprintf("apikeys/%s", guid)
-	_, err := DefaultAtlanClient.CallAPI(api, nil, nil)
+	_, err := tc.client.CallAPI(api, nil, nil)
 	return err
 }
 

@@ -20,12 +20,11 @@ var (
 	userMutex  sync.Mutex
 )
 
-// GetUserCache retrieves the UserCache for the default Atlan client.
-func GetUserCache() (*UserCache, error) {
+// GetUserCache retrieves the UserCache for the given Atlan client.
+func GetUserCache(client *AtlanClient) (*UserCache, error) {
 	userMutex.Lock()
 	defer userMutex.Unlock()
 
-	client := DefaultAtlanClient
 	cacheKey := generateCacheKey(client.host, client.ApiKey)
 
 	if userCaches[cacheKey] == nil {
@@ -38,42 +37,6 @@ func GetUserCache() (*UserCache, error) {
 		}
 	}
 	return userCaches[cacheKey], nil
-}
-
-// GetUserIDForName translates the provided human-readable username to its GUID.
-func GetUserIDForName(name string) (string, error) {
-	cache, err := GetUserCache()
-	if err != nil {
-		return "", err
-	}
-	return cache.getIDForName(name)
-}
-
-// GetUserIDForEmail translates the provided email to its GUID.
-func GetUserIDForEmail(email string) (string, error) {
-	cache, err := GetUserCache()
-	if err != nil {
-		return "", err
-	}
-	return cache.getIDForEmail(email)
-}
-
-// GetUserNameForID translates the provided user GUID to the human-readable username.
-func GetUserNameForID(id string) (string, error) {
-	cache, err := GetUserCache()
-	if err != nil {
-		return "", err
-	}
-	return cache.getNameForID(id)
-}
-
-// ValidateUserNames validates that the given human-readable usernames are valid.
-func ValidateUserNames(names []string) error {
-	cache, err := GetUserCache()
-	if err != nil {
-		return err
-	}
-	return cache.validateNames(names)
 }
 
 func (uc *UserCache) refreshCache() error {
@@ -102,7 +65,8 @@ func (uc *UserCache) refreshCache() error {
 	return nil
 }
 
-func (uc *UserCache) getIDForName(name string) (string, error) {
+// GetUserIDForName translates the provided human-readable username to its GUID.
+func (uc *UserCache) GetUserIDForName(name string) (string, error) {
 	if id, exists := uc.mapNameToID[name]; exists {
 		return id, nil
 	}
@@ -122,7 +86,8 @@ func (uc *UserCache) getIDForName(name string) (string, error) {
 	return uc.mapNameToID[name], nil
 }
 
-func (uc *UserCache) getIDForEmail(email string) (string, error) {
+// GetUserIDForEmail translates the provided email to its GUID.
+func (uc *UserCache) GetUserIDForEmail(email string) (string, error) {
 	if id, exists := uc.mapEmailToID[email]; exists {
 		return id, nil
 	}
@@ -130,7 +95,8 @@ func (uc *UserCache) getIDForEmail(email string) (string, error) {
 	return uc.mapEmailToID[email], nil
 }
 
-func (uc *UserCache) getNameForID(id string) (string, error) {
+// GetUserNameForID translates the provided user GUID to the human-readable username.
+func (uc *UserCache) GetUserNameForID(id string) (string, error) {
 	if name, exists := uc.mapIDToName[id]; exists {
 		return name, nil
 	}
@@ -146,9 +112,10 @@ func (uc *UserCache) getNameForID(id string) (string, error) {
 	return uc.mapIDToName[id], nil
 }
 
-func (uc *UserCache) validateNames(names []string) error {
+// ValidateUserNames validates that the given human-readable usernames are valid.
+func (uc *UserCache) ValidateUserNames(names []string) error {
 	for _, name := range names {
-		if _, err := uc.getIDForName(name); err != nil {
+		if _, err := uc.GetUserIDForName(name); err != nil {
 			return err
 		}
 	}
