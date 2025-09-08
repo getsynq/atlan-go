@@ -14,10 +14,6 @@ func Search(request model.IndexSearchRequest, client *AtlanClient) (*model.Index
 	// Define the API endpoint and method
 	api := &INDEX_SEARCH
 
-	if client == nil {
-		client = DefaultAtlanClient
-	}
-
 	// Call the API
 	responseBytes, err := client.CallAPI(api, nil, &request)
 	if err != nil {

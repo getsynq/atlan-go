@@ -34,7 +34,7 @@ func TestIntegrationAtlanTagCache_GetIDForName(t *testing.T) {
 	cache := NewAtlanTagCache(client)
 
 	// Ensure the cache is populated
-	resp, _ := GetAll()
+	resp, _ := NewTypeDefClient(client).GetAll()
 	tagName := resp.AtlanTagDefs[0].DisplayName
 
 	// _ = cache.RefreshCache()
@@ -59,7 +59,7 @@ func TestIntegrationAtlanTagCache_GetNameForID(t *testing.T) {
 	cache := NewAtlanTagCache(client)
 
 	// Ensure the cache is populated
-	resp, _ := GetAll()
+	resp, _ := NewTypeDefClient(client).GetAll()
 	tagName := resp.AtlanTagDefs[0].DisplayName
 	id, err := cache.GetIDForName(tagName)
 	require.NoError(t, err)

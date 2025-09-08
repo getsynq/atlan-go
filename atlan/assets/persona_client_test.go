@@ -14,19 +14,19 @@ func TestIntegrationPersona(t *testing.T) {
 		t.Skip("skipping integration test")
 	}
 
-	NewContext()
+	client := NewContext()
 
-	personaID, personaQualifiedName := testCreatePersona(t)
-	testRetrievePersona(t, personaID)
-	testUpdatePersona(t, personaQualifiedName)
-	testDeletePersona(t, personaID)
+	personaID, personaQualifiedName := testCreatePersona(t, client)
+	testRetrievePersona(t, client, personaID)
+	testUpdatePersona(t, client, personaQualifiedName)
+	testDeletePersona(t, client, personaID)
 }
 
-func testCreatePersona(t *testing.T) (string, string) {
+func testCreatePersona(t *testing.T, client *AtlanClient) (string, string) {
 	p := &Persona{}
 	// Create Persona
 	p.Creator(PersonaName)
-	response, err := Save(p)
+	response, err := Save(client, p)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -42,8 +42,8 @@ func testCreatePersona(t *testing.T) (string, string) {
 	return CreatedPersona.Guid, *CreatedPersona.Attributes.QualifiedName
 }
 
-func testRetrievePersona(t *testing.T, personaID string) {
-	persona, err := GetByGuid[*Persona](personaID)
+func testRetrievePersona(t *testing.T, client *AtlanClient, personaID string) {
+	persona, err := GetByGuid[*Persona](client, personaID)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -51,12 +51,12 @@ func testRetrievePersona(t *testing.T, personaID string) {
 	assert.Equal(t, PersonaName, *persona.Name, "persona name should match")
 }
 
-func testUpdatePersona(t *testing.T, personaQualifiedName string) {
+func testUpdatePersona(t *testing.T, client *AtlanClient, personaQualifiedName string) {
 	p := &Persona{}
 	Name := "gsdk-test-update"
 	p.Updater(personaQualifiedName, PersonaName, true)
 	p.Name = &Name
-	updateresponse, err := Save(p)
+	updateresponse, err := Save(client, p)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -65,8 +65,8 @@ func testUpdatePersona(t *testing.T, personaQualifiedName string) {
 	assert.Equal(t, *p.Name, *updateresponse.MutatedEntities.UPDATE[0].Attributes.Name, "persona display name should match")
 }
 
-func testDeletePersona(t *testing.T, personaID string) {
-	deleteresponse, err := PurgeByGuid([]string{personaID})
+func testDeletePersona(t *testing.T, client *AtlanClient, personaID string) {
+	deleteresponse, err := PurgeByGuid(client, []string{personaID})
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}

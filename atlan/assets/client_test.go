@@ -30,12 +30,12 @@ func TestEnvConfig(t *testing.T) {
 	}()
 
 	// Initialize client
-	err := Init()
+	client, err := Init()
 	require.NoError(t, err)
 
 	// Assert API key and base URL are correctly set
-	assert.Equal(t, "your_api_key", DefaultAtlanClient.ApiKey)
-	assert.Equal(t, "https://your_base_url", DefaultAtlanClient.host)
+	assert.Equal(t, "your_api_key", client.ApiKey)
+	assert.Equal(t, "https://your_base_url", client.host)
 }
 
 func TestEnvConfigUsingContext(t *testing.T) {

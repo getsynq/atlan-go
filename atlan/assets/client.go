@@ -31,34 +31,15 @@ type AtlanClient struct {
 	SearchAssets
 }
 
-// DefaultAtlanClient represents the default AtlanClient instance.
 var (
-	DefaultAtlanClient   *AtlanClient
-	DefaultAtlanTagCache *AtlanTagCache
 	contentType          string
 )
 
 // Init initializes the default AtlanClient.
-func Init() error {
+func Init() (*AtlanClient, error) {
 	apiKey, baseURL := retrieveAPIConfig()
 
-	// Normalize the baseURL
-	baseURL = normalizeURL(baseURL)
-
-	// Configure client and logger
-	client, logger := configureClient()
-
-	// Initialize default AtlanClient
-	DefaultAtlanClient = &AtlanClient{
-		Session:       client,
-		host:          baseURL,
-		ApiKey:        apiKey,
-		requestParams: defaultRequestParams(apiKey),
-		logger:        *logger,
-		SearchAssets:  newDefaultSearchAssets(),
-	}
-
-	return nil
+	return Context(baseURL, apiKey)
 }
 
 // Context creates a new AtlanClient with provided API key and base URL.
@@ -77,20 +58,22 @@ func Context(baseURL, apiKey string) (*AtlanClient, error) {
 		logger:        *logger,
 		SearchAssets:  newDefaultSearchAssets(),
 	}
-
-	// Set as default AtlanClient
-	DefaultAtlanClient = atlanClient
+	atlanClient.RoleClient = NewRoleClient(atlanClient)
+	atlanClient.GroupClient = NewGroupClient(atlanClient)
+	atlanClient.UserClient = NewUserClient(atlanClient)
+	atlanClient.TokenClient = NewTokenClient(atlanClient)
 
 	return atlanClient, nil
 }
 
 // NewContext initializes a new AtlanClient instance.
 func NewContext() *AtlanClient {
-	if err := Init(); err != nil {
+	atlanClient, err := Init()
+	if err != nil {
 		panic(fmt.Sprintf("Failed to initialize AtlanClient: %v", err))
 	}
 
-	return DefaultAtlanClient
+	return atlanClient
 }
 
 // configureClient configures HTTP client and logger.
@@ -99,15 +82,10 @@ func configureClient() (*http.Client, *logger.Logger) {
 
 	var loggerInstance *logger.Logger
 
-	// Check if the logger is already set by the user
-	if DefaultAtlanClient != nil && DefaultAtlanClient.logger.Log != nil {
-		loggerInstance = &DefaultAtlanClient.logger
-	} else {
-		// Configure logger with default values
-		loggerCfg := &logger.LoggerConfig{Level: "info", Enabled: true}
-		newLogger := logger.NewLogger(loggerCfg)
-		loggerInstance = &newLogger
-	}
+	// Configure logger with default values
+	loggerCfg := &logger.LoggerConfig{Level: "info", Enabled: true}
+	newLogger := logger.NewLogger(loggerCfg)
+	loggerInstance = &newLogger
 
 	return client, loggerInstance
 }
