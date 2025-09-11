@@ -1,6 +1,6 @@
 module github.com/getsynq/atlan-go
 
-go 1.19
+go 1.25.0
 
 require (
 	github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213

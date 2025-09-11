@@ -1,6 +1,7 @@
 package assets
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -78,4 +79,19 @@ func TestIntegrationFluentSearch(t *testing.T) {
 	// Delete already created glossary
 	deleteresponse, _ := PurgeByGuid(client, []string{response.MutatedEntities.CREATE[0].Guid})
 	assert.NotNil(t, deleteresponse, "fetched glossary should not be nil")
+}
+
+func TestRetries(t *testing.T) {
+	var callNumber = 1
+	maybeWithRetries(func() (bool, error) {
+		fmt.Printf("call number #%d\n", callNumber)
+		if callNumber > 2 {
+			return true, nil
+		}
+		callNumber++
+		return false, errors.New("failing to test retry")
+	}, 5, func(i int) time.Duration {
+		return time.Millisecond * time.Duration(i)
+	})
+	assert.Equal(t, 3, callNumber)
 }
