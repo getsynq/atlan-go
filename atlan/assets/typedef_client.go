@@ -2,6 +2,7 @@ package assets
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/atlanhq/atlan-go/atlan"
@@ -132,8 +133,8 @@ func (c *TypeDefClient) Get(typeCategory interface{}) (*model.TypeDefResponse, e
 	}
 
 	if atlan.Contains(categories, atlan.AtlanTypeCategoryStruct.String()) {
-		if response == nil || response.StructDefs == nil || len(response.StructDefs) == 0 {
-			return nil, AtlanError{ErrorCode: errorCodes[EXPIRED_API_TOKEN]}
+		if response == nil || response.StructDefs == nil {
+			return nil, errors.New("missing response for TypeDef get")
 		}
 	}
 

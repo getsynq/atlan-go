@@ -1,6 +1,6 @@
 module github.com/atlanhq/atlan-go
 
-go 1.19
+go 1.24.5
 
 require (
 	github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213

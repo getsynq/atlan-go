@@ -2,6 +2,7 @@ package assets
 
 import (
 	"iter"
+	"time"
 
 	"github.com/atlanhq/atlan-go/atlan"
 	"github.com/atlanhq/atlan-go/atlan/model"
@@ -20,6 +21,9 @@ type FluentSearch struct {
 	IncludesOnRelations []string
 	UtmTags             []string
 	Client              *AtlanClient
+
+	numRetries   int
+	retryBackoff func(int) time.Duration
 }
 
 // SetUtmTags sets the UTM tags for tracking the source of requests.
@@ -145,24 +149,46 @@ func (fs *FluentSearch) WithClient(client *AtlanClient) *FluentSearch {
 	return fs
 }
 
+func (fs *FluentSearch) WithRetries(numRetries int, backoff func(int) time.Duration) *FluentSearch {
+	fs.numRetries = numRetries
+	fs.retryBackoff = backoff
+	return fs
+}
+
+func maybeWithRetries[T any](wrappedCall func() (T, error), numRetries int, backoff func(int) time.Duration) (ret T, err error) {
+	for i := 1; ; i++ {
+		ret, err = wrappedCall()
+		if err == nil {
+			return
+		}
+		if i >= numRetries {
+			break
+		}
+		time.Sleep(backoff(i))
+	}
+	return
+}
+
 // Execute performs the search and returns the results.
 func (fs *FluentSearch) ExecuteIter() iter.Seq2[*model.IndexSearchResponse, error] {
 	return func(yield func(*model.IndexSearchResponse, error) bool) {
 		if fs.PageSize == 0 {
 			fs.PageSize = 300 // Set Default Page Size
 		}
-	
+
 		pageSize := fs.PageSize
 		request := fs.ToRequest()
-	
+
 		iterator := NewIndexSearchIterator(pageSize, *request)
 		if fs.Client != nil {
 			iterator.SetClient(fs.Client)
 		}
-	
+
 		for iterator.HasMoreResults() {
 			{
-				response, err := iterator.NextPage()
+				response, err := maybeWithRetries(func() (*model.IndexSearchResponse, error) {
+					return iterator.NextPage()
+				}, fs.numRetries, fs.retryBackoff)
 				if err != nil {
 					yield(nil, err)
 					return
@@ -192,7 +218,9 @@ func (fs *FluentSearch) Execute() ([]*model.IndexSearchResponse, error) {
 
 	for iterator.HasMoreResults() {
 		{
-			response, err := iterator.NextPage()
+			response, err := maybeWithRetries(func() (*model.IndexSearchResponse, error) {
+				return iterator.NextPage()
+			}, fs.numRetries, fs.retryBackoff)
 			if err != nil {
 				// fmt.Printf("Error executing search: %v\n", err)
 				return nil, err

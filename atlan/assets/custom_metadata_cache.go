@@ -1,6 +1,7 @@
 package assets
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -78,8 +79,8 @@ func (c *CustomMetadataCache) RefreshCache() error {
 		return err
 	}
 
-	if response == nil || len(response.CustomMetadataDefs) == 0 {
-		return ThrowAtlanError(err, EXPIRED_API_TOKEN, nil)
+	if response == nil {
+		return errors.New("missing response for Custom Metadata refresh")
 	}
 
 	// Clear existing cache data
