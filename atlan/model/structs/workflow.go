@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/atlanhq/atlan-go/atlan"
+	"github.com/getsynq/atlan-go/atlan"
 )
 
 // PackageParameter represents package-related parameters.

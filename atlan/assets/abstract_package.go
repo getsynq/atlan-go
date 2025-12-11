@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/atlanhq/atlan-go/atlan/model/structs"
+	"github.com/getsynq/atlan-go/atlan/model/structs"
 )
 
 // AbstractPackage represents a base package

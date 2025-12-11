@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/atlanhq/atlan-go/atlan"
+	"github.com/getsynq/atlan-go/atlan"
 
-	"github.com/atlanhq/atlan-go/atlan/model/structs"
+	"github.com/getsynq/atlan-go/atlan/model/structs"
 )
 
 // SnowflakeMiner represents a Snowflake miner package

@@ -597,7 +597,7 @@ func (uc *UserClient) RemoveUser(userName, transferToUserName string, wfCreatorU
 		Payload:  payload,
 	}
 
-	responseData, err := DefaultAtlanClient.CallAPI(&WORKFLOW_RUN, nil, workflowPayload)
+	responseData, err := uc.client.CallAPI(&WORKFLOW_RUN, nil, workflowPayload)
 	if err != nil {
 		return nil, fmt.Errorf("error executing workflow: %w", err)
 	}
