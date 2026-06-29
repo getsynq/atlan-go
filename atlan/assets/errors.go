@@ -23,7 +23,16 @@ type AtlanError struct {
 }
 
 func (e AtlanError) Error() string {
-	errorMessage := fmt.Sprintf("%s %s", e.ErrorCode.ErrorID, fmt.Sprintf(e.ErrorCode.ErrorMessage, e.Args...))
+	// Only substitute args when the template still has verbs to fill. Some error
+	// codes are constructed with mismatched args (or ThrowAtlanError already
+	// substituted), and an unconditional Sprintf turns those into %!(MISSING) /
+	// %!(EXTRA ...) noise. The real server detail is carried by OriginalError and
+	// Causes below, so a clean static message is preferable to garbled verbs.
+	message := e.ErrorCode.ErrorMessage
+	if len(e.Args) > 0 && strings.Contains(message, "%") {
+		message = fmt.Sprintf(message, e.Args...)
+	}
+	errorMessage := fmt.Sprintf("%s %s", e.ErrorCode.ErrorID, message)
 	if e.ErrorCode.UserAction != "" {
 		errorMessage += "\n" + e.ErrorCode.UserAction
 	}
@@ -164,7 +173,7 @@ var errorCodes = map[ErrorCode]ErrorInfo{
 	INVALID_REQUEST_PASSTHROUGH: {
 		HTTPErrorCode: 400,
 		ErrorID:       "ATLAN-GO-400-000",
-		ErrorMessage:  "Server responded with %s: %s.%s",
+		ErrorMessage:  "Server responded with an error.",
 		UserAction:    "Check the details of the server's message to correct your request.",
 	},
 	MISSING_GROUP_ID: {
@@ -503,7 +512,7 @@ var errorCodes = map[ErrorCode]ErrorInfo{
 	PERMISSION_PASSTHROUGH: {
 		HTTPErrorCode: 403,
 		ErrorID:       "ATLAN-GO-403-000",
-		ErrorMessage:  "Server responded with %s: %s.%s",
+		ErrorMessage:  "Server responded with an error.",
 		UserAction:    "Check the details of the server's message to correct your request.",
 	},
 	UNABLE_TO_IMPERSONATE: {
@@ -521,7 +530,7 @@ var errorCodes = map[ErrorCode]ErrorInfo{
 	NOT_FOUND_PASSTHROUGH: {
 		HTTPErrorCode: 404,
 		ErrorID:       "ATLAN-GO-404-000",
-		ErrorMessage:  "Server responded with %s: %s.",
+		ErrorMessage:  "Server responded with an error.",
 		UserAction:    "Check the details of the server's message to correct your request.",
 	},
 	ASSET_NOT_FOUND_BY_GUID: {
@@ -689,7 +698,7 @@ var errorCodes = map[ErrorCode]ErrorInfo{
 	CONFLICT_PASSTHROUGH: {
 		HTTPErrorCode: 409,
 		ErrorID:       "ATLAN-GO-409-000",
-		ErrorMessage:  "Server responded with %s: %s.%s",
+		ErrorMessage:  "Server responded with an error.",
 		UserAction:    "Check the details of the server's message to correct your request.",
 	},
 	RESERVED_SERVICE_TYPE: {
@@ -701,13 +710,13 @@ var errorCodes = map[ErrorCode]ErrorInfo{
 	RATE_LIMIT_PASSTHROUGH: {
 		HTTPErrorCode: 429,
 		ErrorID:       "ATLAN-GO-429-000",
-		ErrorMessage:  "Server responded with %s: %s.%s",
+		ErrorMessage:  "Server responded with an error.",
 		UserAction:    "Check the details of the server's message to correct your request.",
 	},
 	ERROR_PASSTHROUGH: {
 		HTTPErrorCode: 500,
 		ErrorID:       "ATLAN-GO-500-000",
-		ErrorMessage:  "Server responded with %s: %s.%s",
+		ErrorMessage:  "Server responded with an error.",
 		UserAction:    "Check the details of the server's message to correct your request.",
 	},
 	DUPLICATE_CUSTOM_ATTRIBUTES: {
@@ -770,7 +779,6 @@ func handleApiError(response *http.Response, originalError error) error {
 	var causes []Cause
 
 	if err := json.Unmarshal(body, &errorResponse); err == nil {
-		fmt.Println(errorResponse)
 		causes = errorResponse.Causes
 		// Check for Atlan-specific error code 1006
 		if errorResponse.ErrorID == "1006" && strings.Contains(errorResponse.Message, "Please provide the required payload") {
