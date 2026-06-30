@@ -52,7 +52,7 @@ func TestIntegrationFluentSearch(t *testing.T) {
 		fmt.Printf("Error executing search: %v\n", err)
 		return
 	}
-	firstPage, _ := searchResult.CurrentPage()
+	firstPage := searchResult[0]
 	glossary := firstPage.Entities[0]
 
 	assert.NotNil(t, searchResult, "search result should not be nil")
@@ -75,7 +75,7 @@ func TestIntegrationFluentSearch(t *testing.T) {
 		return
 	}
 
-	firstPage, _ = searchResult.CurrentPage()
+	firstPage = searchResult[0]
 	glossary = firstPage.Entities[0]
 
 	assert.Len(t, firstPage.Entities, 1, "number of glossaries should be 1")

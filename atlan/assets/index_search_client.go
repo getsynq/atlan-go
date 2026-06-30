@@ -314,12 +314,12 @@ func (it *IndexSearchIterator) NextPage() (*model.IndexSearchResponse, error) {
 		return nil, err
 	}
 
-	it.currentPage = response.currentPage
-	it.totalResults = response.currentPage.ApproximateCount
+	it.currentPage = response
+	it.totalResults = response.ApproximateCount
 	it.hasMoreResults = int64(it.request.Dsl.From+it.pageSize) < it.totalResults
 	it.currentPageNum++
 
-	return response.currentPage, nil
+	return response, nil
 }
 
 // CurrentPageNumber returns the current page number.
@@ -355,7 +355,7 @@ func (it *IndexSearchIterator) IteratePages() ([]*model.IndexSearchResponse, err
 	if err != nil {
 		return nil, err
 	}
-	it.totalResults = response.currentPage.ApproximateCount
+	it.totalResults = response.ApproximateCount
 	it.hasMoreResults = it.totalResults > 0
 	if !it.hasMoreResults {
 		return nil, fmt.Errorf("no more results available")
@@ -363,7 +363,7 @@ func (it *IndexSearchIterator) IteratePages() ([]*model.IndexSearchResponse, err
 
 	// If approximateCount is 1, return the response immediately
 	if it.totalResults == 1 {
-		return []*model.IndexSearchResponse{response.currentPage}, nil
+		return []*model.IndexSearchResponse{response}, nil
 	}
 
 	// Num of pages to fetch
@@ -384,7 +384,7 @@ func (it *IndexSearchIterator) IteratePages() ([]*model.IndexSearchResponse, err
 				errors[i] = err
 				return
 			}
-			responses[i] = response.currentPage
+			responses[i] = response
 		}(i)
 	}
 

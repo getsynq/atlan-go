@@ -4,52 +4,30 @@ import (
 	"fmt"
 	"log"
 
-	_ "github.com/atlanhq/atlan-go/atlan"
 	"github.com/atlanhq/atlan-go/atlan/assets"
-	_ "github.com/atlanhq/atlan-go/atlan/model/structs"
 )
 
 func main() {
 	ctx := assets.NewContext()
 	ctx.EnableLogging("debug")
 
-	columnSearchResponse, _ := assets.NewFluentSearch().
+	columnSearchResponse := assets.NewFluentSearch().
 		PageSizes(50).
 		Where(ctx.Column.TYPENAME.Eq("Column")).
-		Execute()
+		ExecuteIter()
 
-	// Fetch the first page
-	page, err := columnSearchResponse.CurrentPage()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Iterate through the assets in the current page
-	for _, asset := range page.Entities {
-		fmt.Println("Asset:", asset)
-	}
-
-	// Iterate through pages until there are no more results
-	for {
-		page, err := columnSearchResponse.CurrentPage() // Fetch the current page (first fetch happens automatically)
+	for page, err := range columnSearchResponse {
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		// Process assets from the current page
 		for _, asset := range page.Entities {
 			fmt.Println("Asset:", asset)
-		}
-
-		// Move to the next page, exit loop if no more results
-		if _, err := columnSearchResponse.NextPage(); err != nil {
-			break
 		}
 	}
 
 	// Iterate over all results across all pages
-	for columnSearchResponse.HasMoreResults() {
-		page, err := columnSearchResponse.NextPage()
+	for page, err := range columnSearchResponse {
 		if err != nil {
 			log.Fatal(err)
 		}

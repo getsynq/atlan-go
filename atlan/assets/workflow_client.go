@@ -60,7 +60,7 @@ func (w *WorkflowClient) FindByType(prefix atlan.WorkflowPackage, maxResults int
 		Sort:  sortItems,
 	}
 
-	rawJSON, err := DefaultAtlanClient.CallAPI(&WORKFLOW_INDEX_SEARCH, nil, &request)
+	rawJSON, err := w.CallAPI(&WORKFLOW_INDEX_SEARCH, nil, &request)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (w *WorkflowClient) FindByID(id string) (*structs.WorkflowSearchResult, err
 		Size:  1,
 	}
 
-	rawJSON, err := DefaultAtlanClient.CallAPI(&WORKFLOW_INDEX_SEARCH, nil, &request)
+	rawJSON, err := w.CallAPI(&WORKFLOW_INDEX_SEARCH, nil, &request)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +163,7 @@ func (w *WorkflowClient) findRuns(query model.Query, from, size int) (*structs.W
 		Size:  size,
 	}
 
-	rawJSON, err := DefaultAtlanClient.CallAPI(&WORKFLOW_INDEX_RUN_SEARCH, nil, &request)
+	rawJSON, err := w.CallAPI(&WORKFLOW_INDEX_RUN_SEARCH, nil, &request)
 	if err != nil {
 		return nil, err
 	}
@@ -288,7 +288,7 @@ func (w *WorkflowClient) Stop(workflowRunID string) (*structs.WorkflowRunRespons
 	api := &STOP_WORKFLOW_RUN
 	api.Path = fmt.Sprintf("runs/%s/stop", workflowRunID)
 
-	rawJSON, err := DefaultAtlanClient.CallAPI(api, nil, "")
+	rawJSON, err := w.CallAPI(api, nil, "")
 	if err != nil {
 		return nil, err
 	}
@@ -310,7 +310,7 @@ func (w *WorkflowClient) Stop(workflowRunID string) (*structs.WorkflowRunRespons
 func (w *WorkflowClient) Delete(workflowName string) error {
 	api := &WORKFLOW_ARCHIVE
 	api.Path = fmt.Sprintf("workflows/%s/archive", workflowName)
-	_, err := DefaultAtlanClient.CallAPI(api, nil, "")
+	_, err := w.CallAPI(api, nil, "")
 	return err
 }
 
@@ -402,7 +402,7 @@ func (w *WorkflowClient) Rerun(workflow interface{}, idempotent bool) (*structs.
 		ResourceName: *detail.Metadata.Name,
 	}
 
-	rawJSON, err := DefaultAtlanClient.CallAPI(&WORKFLOW_RERUN, nil, &request)
+	rawJSON, err := w.CallAPI(&WORKFLOW_RERUN, nil, &request)
 	if err != nil {
 		return nil, err
 	}
@@ -426,7 +426,7 @@ func (w *WorkflowClient) Update(workflow *structs.Workflow) (*structs.WorkflowRe
 	api := &WORKFLOW_UPDATE
 	api.Path = fmt.Sprintf("workflows/%s", *workflow.Metadata.Name)
 
-	rawJSON, err := DefaultAtlanClient.CallAPI(api, nil, workflow)
+	rawJSON, err := w.CallAPI(api, nil, workflow)
 	if err != nil {
 		return nil, err
 	}
@@ -453,7 +453,7 @@ func (w *WorkflowClient) UpdateOwner(workflowName, username string) (*structs.Wo
 
 	queryParams := map[string]string{"username": username}
 
-	rawJSON, err := DefaultAtlanClient.CallAPI(api, queryParams, nil)
+	rawJSON, err := w.CallAPI(api, queryParams, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -535,7 +535,7 @@ func (w *WorkflowClient) AddSchedule(workflow interface{}, schedule *structs.Wor
 	api := &WORKFLOW_UPDATE
 	api.Path = fmt.Sprintf("workflows/%s", *workflowToUpdate.Metadata.Name)
 
-	rawJSON, err := DefaultAtlanClient.CallAPI(api, nil, workflowToUpdate)
+	rawJSON, err := w.CallAPI(api, nil, workflowToUpdate)
 	if err != nil {
 		return nil, err
 	}
@@ -570,7 +570,7 @@ func (w *WorkflowClient) RemoveSchedule(workflow interface{}) (*structs.Workflow
 	api := &WORKFLOW_UPDATE
 	api.Path = fmt.Sprintf("workflows/%s", *workflowToUpdate.Metadata.Name)
 
-	rawJSON, err := DefaultAtlanClient.CallAPI(api, nil, workflowToUpdate)
+	rawJSON, err := w.CallAPI(api, nil, workflowToUpdate)
 	if err != nil {
 		return nil, err
 	}
@@ -590,7 +590,7 @@ func (w *WorkflowClient) RemoveSchedule(workflow interface{}) (*structs.Workflow
 //   - A WorkflowScheduleResponse containing the list of scheduled workflows.
 //   - Error if any occurred during the API call.
 func (w *WorkflowClient) GetAllScheduledRuns() (*structs.WorkflowScheduleResponse, error) {
-	rawJSON, err := DefaultAtlanClient.CallAPI(&GET_ALL_SCHEDULE_RUNS, nil, nil)
+	rawJSON, err := w.CallAPI(&GET_ALL_SCHEDULE_RUNS, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -618,7 +618,7 @@ func (w *WorkflowClient) GetScheduledRun(workflowName string) (*structs.Workflow
 	api := &GET_SCHEDULE_RUN
 	api.Path = fmt.Sprintf("runs/cron/%s-cron", workflowName)
 
-	rawJSON, err := DefaultAtlanClient.CallAPI(api, nil, nil)
+	rawJSON, err := w.CallAPI(api, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -670,7 +670,7 @@ func (w *WorkflowClient) FindScheduleQuery(savedQueryID string, maxResults int) 
 		Size:  maxResults,
 	}
 
-	rawJSON, err := DefaultAtlanClient.CallAPI(&WORKFLOW_INDEX_SEARCH, nil, request)
+	rawJSON, err := w.CallAPI(&WORKFLOW_INDEX_SEARCH, nil, request)
 	if err != nil {
 		return nil, err
 	}
@@ -702,7 +702,7 @@ func (w *WorkflowClient) ReRunScheduleQuery(scheduleQueryID string) (*structs.Wo
 		ResourceName: scheduleQueryID,
 	}
 
-	rawJSON, err := DefaultAtlanClient.CallAPI(&WORKFLOW_OWNER_RERUN, nil, &request)
+	rawJSON, err := w.CallAPI(&WORKFLOW_OWNER_RERUN, nil, &request)
 	if err != nil {
 		return nil, err
 	}
@@ -736,7 +736,7 @@ func (w *WorkflowClient) FindScheduleQueryBetween(request structs.ScheduleQuerie
 		searchAPI = SCHEDULE_QUERY_WORKFLOWS_MISSED
 	}
 
-	rawJSON, err := DefaultAtlanClient.CallAPI(&searchAPI, queryParams, nil)
+	rawJSON, err := w.CallAPI(&searchAPI, queryParams, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -780,7 +780,7 @@ func (w *WorkflowClient) Run(workflow interface{}, schedule *structs.WorkflowSch
 		w.addSchedule(workflowToUpdate, schedule)
 	}
 
-	responseData, err := DefaultAtlanClient.CallAPI(&WORKFLOW_RUN, nil, workflowPayload)
+	responseData, err := w.CallAPI(&WORKFLOW_RUN, nil, workflowPayload)
 	if err != nil {
 		return nil, fmt.Errorf("error executing workflow: %w", err)
 	}
